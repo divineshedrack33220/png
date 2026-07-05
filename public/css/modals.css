@@ -1,0 +1,415 @@
+.modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.modal-root .modal-backdrop,
+.modal-root .modal-sheet {
+  pointer-events: auto;
+}
+
+.modal-sheet .modal-header + .modal-body {
+  padding-top: 0;
+}
+
+.pin-entry .pin-dot {
+  transition: all var(--transition-fast);
+}
+
+.pin-entry .pin-dot.filled {
+  animation: bounceIn 200ms ease forwards;
+}
+
+.quick-chips .chip {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  user-select: none;
+}
+
+.quick-chips .chip:active {
+  transform: scale(0.96);
+}
+
+.payment-option {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.payment-option.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.converter-swap {
+  transition: transform var(--transition-base), background var(--transition-fast);
+  cursor: pointer;
+}
+
+.converter-swap:active {
+  background: var(--primary);
+  color: white;
+}
+
+.numpad-key {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.numpad-key:active {
+  background: var(--primary-light);
+  transform: scale(0.96);
+}
+
+.service-item {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.service-item:active {
+  transform: scale(0.96);
+}
+
+.service-item:active .service-icon {
+  background: var(--primary);
+  color: white;
+}
+
+.receipt-grid {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.receipt-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.receipt-item:last-child {
+  border-bottom: none;
+}
+
+.receipt-full {
+  grid-column: 1 / -1;
+}
+
+.upload-zone {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.upload-zone:active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: scale(0.98);
+}
+
+.success-checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-checkmark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.checkmark-path {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: checkmark 600ms 300ms ease forwards;
+}
+
+.modal-sheet::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-sheet::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-sheet::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* === Crypto Deposit === */
+.crypto-deposit {
+  padding: 4px 0;
+}
+
+.crypto-network-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.crypto-network-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.crypto-network-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface);
+  transition: all var(--transition-fast);
+}
+
+.crypto-network-tab.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.crypto-address-box {
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.crypto-address-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.crypto-address-value {
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-primary);
+  word-break: break-all;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.crypto-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--transition-fast);
+}
+
+.crypto-copy-btn:active {
+  background: var(--primary-dark);
+}
+
+.crypto-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--warning);
+  background: var(--warning-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.crypto-deposit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crypto-info-row {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 4px;
+}
+
+/* ─── Crypto Deposit Steps ─── */
+
+.crypto-step {
+  animation: fadeSlideIn 0.2s ease;
+}
+
+.crypto-amount-input {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  padding: 16px;
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  transition: border-color 0.15s;
+}
+.crypto-amount-input:focus {
+  border-color: var(--primary);
+}
+.crypto-amount-input.error {
+  border-color: var(--danger);
+}
+
+.crypto-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.crypto-summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.crypto-summary-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Balance Edit Modal ─── */
+
+.balance-edit-form {
+  padding: 20px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.balance-edit-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.balance-edit-current-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.balance-edit-current-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.balance-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.balance-edit-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 4px;
+}
+
+.balance-edit-select {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+.balance-edit-select:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.balance-edit-input {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+}
+.balance-edit-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+.balance-edit-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.balance-edit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.balance-edit-btn:hover { opacity: 0.92; }
+.balance-edit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.balance-edit-btn:active { transform: scale(0.98); }
