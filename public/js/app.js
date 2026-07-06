@@ -711,7 +711,7 @@ function renderHome() {
     const addrLabel = el('div', { style: { fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' } }, 'Your Deposit Address');
     addrCard.appendChild(addrLabel);
     const addrRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' } });
-    const addrText = el('span', { style: { fontSize: '15px', fontWeight: '500', color: 'white', fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', letterSpacing: '0.3px', backdropFilter: 'blur(4px)' }, onClick: () => {
+    const addrText = el('span', { style: { fontSize: '15px', fontWeight: '500', color: 'white', fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', letterSpacing: '0.3px', backdropFilter: 'blur(4px)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }, onClick: () => {
       navigator.clipboard.writeText(BTC_DEPOSIT_ADDRESS);
       showToast('Deposit address copied', 'success');
     } }, BTC_DEPOSIT_ADDRESS);
