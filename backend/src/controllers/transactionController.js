@@ -74,6 +74,9 @@ export const createTransaction = async (req, res) => {
     });
 
     const user = await User.findById(req.userId);
+    if (type === 'debit' && (user.balance.USD || 0) < amount) {
+      return res.status(400).json({ error: 'Insufficient funds' });
+    }
     if (type === 'credit') {
       user.balance.USD = (user.balance.USD || 0) + amount;
     } else if (type === 'debit') {

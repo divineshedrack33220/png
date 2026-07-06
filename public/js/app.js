@@ -3575,7 +3575,7 @@ function renderSend() {
     const amt = parseFloat(amountInput.value);
     if (!addr) { haptic('error'); showToast('Enter a destination address', 'error'); return; }
     if (!amt || amt <= 0) { haptic('error'); showToast('Enter a valid amount', 'error'); return; }
-    if (!selectedWallet || selectedWallet.balance <= 0) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
+    if (!selectedWallet || selectedWallet.balance < amt) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
 
     sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
     sendBtn.disabled = true;
