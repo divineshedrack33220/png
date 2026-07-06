@@ -22,8 +22,13 @@ function buildTierInfo(user) {
 
 export const getProfile = async (req, res) => {
   try {
-    const userData = req.user.toSafeObject();
-    userData.tierInfo = buildTierInfo(req.user);
+    const user = req.user;
+    if (user.tier >= 2 && user.isLimited) {
+      user.isLimited = false;
+      await user.save();
+    }
+    const userData = user.toSafeObject();
+    userData.tierInfo = buildTierInfo(user);
     res.json({ user: userData });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -215,7 +220,7 @@ export const submitKycDocument = async (req, res) => {
     user.kycStatus = 'pending';
     await user.save();
 
-    res.json({ message: 'Documents submitted for review', kycStatus: 'pending' });
+    res.json({ message: 'Documents submitted for review', kycStatus: 'pending', user: user.toSafeObject() });
   } catch (err) {
     console.error('Submit KYC error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -230,8 +235,9 @@ export const getTierInfo = async (req, res) => {
     const eligibleForTier3 = (user.balance?.USD || 0) >= 5000;
     if (user.tier >= 2 && eligibleForTier3 && user.tier < 3) {
       user.tier = 3;
-      await user.save();
     }
+    if (user.tier >= 2) user.isLimited = false;
+    await user.save();
 
     res.json({ tierInfo: buildTierInfo(user) });
   } catch (err) {

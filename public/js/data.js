@@ -162,7 +162,9 @@ const Store = {
     return await api('/wallets/withdraw', { method: 'POST', body: JSON.stringify({ walletId, address, amount }) });
   },
   async submitKycDocument(docType, front, back, selfie) {
-    return await api('/users/kyc', { method: 'POST', body: JSON.stringify({ docType, front, back, selfie }) });
+    const data = await api('/users/kyc', { method: 'POST', body: JSON.stringify({ docType, front, back, selfie }) });
+    if (data.user) this.user = data.user;
+    return data;
   },
   async getTierInfo() {
     return await api('/users/tier-info');

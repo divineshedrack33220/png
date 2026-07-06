@@ -133,21 +133,23 @@ export const suspendUser = async (req, res) => {
 export const reviewKyc = async (req, res) => {
   try {
     const { action, reason } = req.body;
-    const kycStatus = action === 'approve' ? 'verified' : 'rejected';
-    const update = { kycStatus };
-    if (action === 'reject') {
-      update.$push = { kycDocuments: { $each: [{ status: 'rejected', reason, reviewedAt: new Date() }] } };
-    } else {
-      update.$push = { kycDocuments: { $each: [{ status: 'approved', reviewedAt: new Date() }] } };
-      const userDoc = await User.findById(req.params.id);
-      if (userDoc) {
-        const hasSsnDoc = userDoc.kycDocuments.some(d => d.type === 'ssn');
-        if (hasSsnDoc && userDoc.tier < 2) update.tier = 2;
-      }
-    }
-    const user = await User.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after' }).select('-password');
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user, message: action === 'approve' ? 'KYC approved' : 'KYC rejected' });
+
+    const lastDoc = user.kycDocuments[user.kycDocuments.length - 1];
+    if (action === 'approve') {
+      if (lastDoc) { lastDoc.status = 'approved'; lastDoc.reviewedAt = new Date(); }
+      user.kycStatus = 'verified';
+      const hasSsnDoc = user.kycDocuments.some(d => d.type === 'ssn');
+      if (hasSsnDoc && user.tier < 2) user.tier = 2;
+      if (user.tier >= 2) user.isLimited = false;
+    } else {
+      if (lastDoc) { lastDoc.status = 'rejected'; lastDoc.reviewedAt = new Date(); lastDoc.reason = reason || ''; }
+      user.kycStatus = 'rejected';
+    }
+    await user.save();
+
+    res.json({ user: user.toSafeObject(), message: action === 'approve' ? 'KYC approved' : 'KYC rejected' });
   } catch (err) {
     console.error('Admin reviewKyc error:', err);
     res.status(500).json({ error: 'Server error' });

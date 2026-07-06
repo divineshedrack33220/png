@@ -2292,7 +2292,8 @@ function renderVerification() {
           ssnUploadBtn.disabled = true;
           ssnUploadBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
           try {
-            await Store.submitKycDocument('ssn', ssn, '', '');
+            const result = await Store.submitKycDocument('ssn', ssn, '', '');
+            if (result?.user) Store.user = result.user;
             showToast('SSN submitted for review', 'success');
             buildTiers('pending');
           } catch (err) { showToast(err.message || 'Failed', 'error'); }
