@@ -4179,10 +4179,15 @@ function renderSwap() {
   swapBtnEl.addEventListener('click', async () => {
     const val = parseFloat(fromInput.value) || 0;
     if (val <= 0) { haptic('error'); showToast(t('enter_valid_amount'), 'error'); return; }
+    const fromBalance = fromCoin === 'USD' ? (Store.user.balance?.USD || 0) : (Store.user.balance?.[fromCoin] || 0);
+    if (fromBalance < val) { haptic('error'); showToast('Insufficient ' + fromCoin + ' balance', 'error'); return; }
     swapBtnEl.innerHTML = '<div class="spinner spinner-sm"></div>';
     swapBtnEl.disabled = true;
     try {
       await Store.createTransaction({ type: 'debit', category: 'exchange', title: fromCoin + ' to ' + toCoin + ' Swap', amount: val });
+      const key = fromCoin + '-' + toCoin;
+      const rate = rates[key] || 1;
+      await Store.createTransaction({ type: 'credit', category: 'exchange', title: toCoin + ' from ' + fromCoin + ' Swap', amount: val * rate });
       await Store.fetchUser();
       await Store.fetchTransactions();
       haptic('success');
