@@ -2388,8 +2388,7 @@ function modalKycForm(onSuccess) {
 
     const uploads = [
       { label: 'Government ID — Front', id: 'kyc-front', icon: 'identification-card' },
-      { label: 'Government ID — Back', id: 'kyc-back', icon: 'identification-card' },
-      { label: 'Selfie with ID', id: 'kyc-selfie', icon: 'camera' }
+      { label: 'Government ID — Back', id: 'kyc-back', icon: 'identification-card' }
     ];
 
     const uploadStates = {};
@@ -2424,8 +2423,8 @@ function modalKycForm(onSuccess) {
     const submitBtn = el('button', { className: 'btn btn-primary w-full', style: { height: '48px', fontSize: '15px' }, onClick: async () => {
       const name = document.getElementById('kyc-name').value.trim();
       if (!name) { showToast('Full name is required', 'error'); return; }
-      if (!uploadStates['kyc-front'] || !uploadStates['kyc-back'] || !uploadStates['kyc-selfie']) {
-        showToast('Please upload all required documents', 'error'); return;
+      if (!uploadStates['kyc-front'] || !uploadStates['kyc-back']) {
+        showToast('Please upload both sides of your ID', 'error'); return;
       }
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
@@ -2440,9 +2439,8 @@ function modalKycForm(onSuccess) {
 
         const front = await readFileAsDataURL(uploadStates['kyc-front']);
         const back = await readFileAsDataURL(uploadStates['kyc-back']);
-        const selfie = await readFileAsDataURL(uploadStates['kyc-selfie']);
 
-        const result = await Store.submitKycDocument('ssn', front, back, selfie);
+        const result = await Store.submitKycDocument('ssn', front, back, '');
         if (result?.user) Store.user = result.user;
         await Store.fetchUser();
         showToast('Documents submitted for review', 'success');
