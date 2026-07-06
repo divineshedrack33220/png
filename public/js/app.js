@@ -2361,8 +2361,9 @@ function modalKycForm(onSuccess) {
     const u = Store.user || {};
 
     const personalSection = el('div', {});
-    personalSection.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } },
-      createIcon('user', 16) + ' Personal Information'));
+    const sectionTitle1 = el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } });
+    sectionTitle1.innerHTML = createIcon('user', 16) + ' Personal Information';
+    personalSection.appendChild(sectionTitle1);
     const personalFields = [
       { label: 'Full Name', id: 'kyc-name', value: u.name || '', placeholder: 'e.g. John Miller' },
       { label: 'Date of Birth', id: 'kyc-dob', value: u.dateOfBirth || '', placeholder: 'e.g. 1990-01-15', type: 'date' },
@@ -2381,8 +2382,9 @@ function modalKycForm(onSuccess) {
     content.appendChild(divider);
 
     const docSection = el('div', {});
-    docSection.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } },
-      createIcon('identification-card', 16) + ' Document Upload'));
+    const sectionTitle2 = el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } });
+    sectionTitle2.innerHTML = createIcon('identification-card', 16) + ' Document Upload';
+    docSection.appendChild(sectionTitle2);
 
     const uploads = [
       { label: 'Government ID — Front', id: 'kyc-front', icon: 'identification-card' },
