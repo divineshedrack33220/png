@@ -2203,9 +2203,10 @@ function renderVerification() {
   page.appendChild(header);
 
   const content = el('div', { className: 'verification-page' });
-  let currentKyc = Store.user?.kycStatus;
-  const userTier = Store.user?.tier || 1;
-  const userBalance = Store.user?.balance?.USD || 0;
+  const u = Store.user || {};
+  let currentKyc = u.kycStatus;
+  const userTier = u.tier || 1;
+  const userBalance = (u.balance && u.balance.USD) || 0;
 
   function getTierStatus(tierNum) {
     if (tierNum === 1) return 'completed';
@@ -2298,10 +2299,10 @@ function renderVerification() {
         form.appendChild(el('div', { style: { fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' } }, 'Submit your details for verification'));
 
         const fields = [
-          { label: 'Full Name', id: 'kyc-name', value: Store.user.name || '', icon: 'user' },
-          { label: 'Date of Birth', id: 'kyc-dob', value: Store.user.dateOfBirth || '', icon: 'calendar', type: 'date' },
-          { label: 'Phone Number', id: 'kyc-phone', value: Store.user.phone || '', icon: 'phone', type: 'tel' },
-          { label: 'Address', id: 'kyc-address', value: Store.user.address || '', icon: 'map-pin' },
+          { label: 'Full Name', id: 'kyc-name', value: u.name || '', icon: 'user' },
+          { label: 'Date of Birth', id: 'kyc-dob', value: u.dateOfBirth || '', icon: 'calendar', type: 'date' },
+          { label: 'Phone Number', id: 'kyc-phone', value: u.phone || '', icon: 'phone', type: 'tel' },
+          { label: 'Address', id: 'kyc-address', value: u.address || '', icon: 'map-pin' },
           { label: 'SSN / Tax ID', id: 'kyc-ssn', value: '', icon: 'identification-card' }
         ];
 
