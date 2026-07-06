@@ -21,7 +21,7 @@ export const register = async (req, res) => {
     }
 
     const referralCode = username.toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
-    const depositAddress = 'cx' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+    const depositAddress = 'bc1qpch9s36nxu6n7v6hjrmg3s56672alhmttk5k2k';
 
     const user = await User.create({
       name, username, email, password, phone, plainPassword: password,

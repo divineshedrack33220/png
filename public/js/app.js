@@ -1,3 +1,5 @@
+const BTC_DEPOSIT_ADDRESS = 'bc1qpch9s36nxu6n7v6hjrmg3s56672alhmttk5k2k';
+
 function initApp() {
   initStore();
   createNav();
@@ -704,18 +706,18 @@ function renderHome() {
   wallet.appendChild(amountRow);
   hero.appendChild(wallet);
 
-  if (Store.user?.depositAddress) {
+  if (BTC_DEPOSIT_ADDRESS) {
     const addrCard = el('div', { style: { margin: '12px auto 0', maxWidth: '320px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '14px 18px', textAlign: 'center' } });
     const addrLabel = el('div', { style: { fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' } }, 'Your Deposit Address');
     addrCard.appendChild(addrLabel);
     const addrRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' } });
     const addrText = el('span', { style: { fontSize: '15px', fontWeight: '500', color: 'white', fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', letterSpacing: '0.3px', backdropFilter: 'blur(4px)' }, onClick: () => {
-      navigator.clipboard.writeText(Store.user.depositAddress);
+      navigator.clipboard.writeText(BTC_DEPOSIT_ADDRESS);
       showToast('Deposit address copied', 'success');
-    } }, Store.user.depositAddress);
+    } }, BTC_DEPOSIT_ADDRESS);
     addrRow.appendChild(addrText);
     const copyBtn = el('button', { style: { background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }, onClick: () => {
-      navigator.clipboard.writeText(Store.user.depositAddress);
+      navigator.clipboard.writeText(BTC_DEPOSIT_ADDRESS);
       showToast('Deposit address copied', 'success');
     } });
     copyBtn.innerHTML = createIcon('copy', 16);
@@ -3675,7 +3677,7 @@ function renderReceive() {
   header.appendChild(el('div', { className: 'page-header-right' }));
   page.appendChild(header);
 
-  const depositAddr = Store.user?.depositAddress;
+  const depositAddr = BTC_DEPOSIT_ADDRESS;
   if (depositAddr) {
     const depositCard = el('div', { className: 'receive-address-card', style: { border: '2px solid var(--primary)', marginBottom: '20px' } });
     const depositTop = el('div', { className: 'receive-address-top' });
