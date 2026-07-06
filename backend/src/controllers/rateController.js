@@ -9,13 +9,19 @@ const CG_IDS = {
 };
 const CG_IDS_LIST = Object.values(CG_IDS).join(',');
 
-function httpsGet(url) {
+function httpsGet(url, retries = 2) {
   return new Promise((resolve, reject) => {
-    https.get(url, { timeout: 15000, headers: { 'User-Agent': 'Coinexs/1.0' } }, res => {
+    const req = https.get(url, { headers: { 'User-Agent': 'Coinexs/1.0' } }, res => {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => resolve({ ok: res.statusCode === 200, status: res.statusCode, json: () => JSON.parse(data) }));
-    }).on('error', reject).on('timeout', function() { this.destroy(); reject(new Error('timeout')); });
+    });
+    const timer = setTimeout(() => { req.destroy(); reject(new Error('timeout')); }, 15000);
+    req.on('error', e => { clearTimeout(timer); reject(e); });
+    req.on('close', () => clearTimeout(timer));
+  }).catch(err => {
+    if (retries > 0) return httpsGet(url, retries - 1);
+    throw err;
   });
 }
 
@@ -42,7 +48,7 @@ export async function fetchLiveRates() {
       });
     }
   } catch (err) {
-    console.error('fetchLiveRates error:', err.code || err.message || String(err));
+    // CoinGecko unreachable — will retry in 60s
   }
 }
 
