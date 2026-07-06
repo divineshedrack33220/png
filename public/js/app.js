@@ -2219,6 +2219,14 @@ function renderVerification() {
     return 'locked';
   }
 
+  function readFileAsDataURL(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
   function buildTiers(status) {
     content.innerHTML = '';
     const progress = el('div', { className: 'verif-progress' });
@@ -2239,11 +2247,13 @@ function renderVerification() {
       },
       {
         name: 'Tier 2 — Standard',
-        desc: 'SSN verification required',
+        desc: 'Submit your information for verification',
         limit: 'Send: Up to $1,000/day',
         status: getTierStatus(2),
         reqs: [
-          { text: 'Submit SSN', done: currentKyc === 'verified' || currentKyc === 'pending' },
+          { text: 'Personal details', done: currentKyc === 'verified' || currentKyc === 'pending' },
+          { text: 'Government ID', done: currentKyc === 'verified' || currentKyc === 'pending' },
+          { text: 'Selfie photo', done: currentKyc === 'verified' || currentKyc === 'pending' },
           { text: 'Admin approval', done: currentKyc === 'verified' }
         ]
       },
@@ -2283,30 +2293,103 @@ function renderVerification() {
       });
       tier.appendChild(reqs);
 
-      if (t.name.includes('Standard') && t.status === 'pending' && status !== 'rejected') {
-        const ssnSection = el('div', { className: 'verif-ssn-section', style: { marginTop: '12px' } });
-        const ssnInput = el('input', { type: 'text', className: 'form-input', placeholder: 'Enter your SSN', id: 'ssn-input', style: { marginBottom: '8px' } });
-        const ssnUploadBtn = el('button', { className: 'btn btn-primary btn-sm w-full', onClick: async () => {
-          const ssn = ssnInput.value.trim();
-          if (!ssn || ssn.length < 4) { showToast('Please enter a valid SSN', 'error'); return; }
-          ssnUploadBtn.disabled = true;
-          ssnUploadBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
+      if (t.name.includes('Standard') && t.status !== 'completed' && status !== 'pending') {
+        const form = el('div', { className: 'cards-section', style: { marginTop: '16px', padding: '16px' } });
+        form.appendChild(el('div', { style: { fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' } }, 'Submit your details for verification'));
+
+        const fields = [
+          { label: 'Full Name', id: 'kyc-name', value: Store.user.name || '', icon: 'user' },
+          { label: 'Date of Birth', id: 'kyc-dob', value: Store.user.dateOfBirth || '', icon: 'calendar', type: 'date' },
+          { label: 'Phone Number', id: 'kyc-phone', value: Store.user.phone || '', icon: 'phone', type: 'tel' },
+          { label: 'Address', id: 'kyc-address', value: Store.user.address || '', icon: 'map-pin' },
+          { label: 'SSN / Tax ID', id: 'kyc-ssn', value: '', icon: 'identification-card' }
+        ];
+
+        fields.forEach(f => {
+          const row = el('div', { style: { marginBottom: '12px' } });
+          row.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '4px' } }, f.label));
+          const input = el('input', {
+            type: f.type || 'text', className: 'form-input',
+            id: f.id, placeholder: f.label,
+            value: f.value
+          });
+          row.appendChild(input);
+          form.appendChild(row);
+        });
+
+        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '16px', marginBottom: '8px' } }, 'Government ID (Front)'));
+        const frontWrap = el('div', { className: 'verif-upload-btn' });
+        const frontInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-front' });
+        const frontLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => frontInput.click() }, 'Upload ID Front');
+        const frontName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
+        frontInput.addEventListener('change', () => { frontName.textContent = frontInput.files[0]?.name || ''; });
+        frontWrap.appendChild(frontInput);
+        frontWrap.appendChild(frontLabel);
+        frontWrap.appendChild(frontName);
+        form.appendChild(frontWrap);
+
+        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '12px', marginBottom: '8px' } }, 'Government ID (Back)'));
+        const backWrap = el('div', { className: 'verif-upload-btn' });
+        const backInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-back' });
+        const backLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => backInput.click() }, 'Upload ID Back');
+        const backName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
+        backInput.addEventListener('change', () => { backName.textContent = backInput.files[0]?.name || ''; });
+        backWrap.appendChild(backInput);
+        backWrap.appendChild(backLabel);
+        backWrap.appendChild(backName);
+        form.appendChild(backWrap);
+
+        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '12px', marginBottom: '8px' } }, 'Selfie with ID'));
+        const selfieWrap = el('div', { className: 'verif-upload-btn' });
+        const selfieInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-selfie' });
+        const selfieLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => selfieInput.click() }, 'Upload Selfie');
+        const selfieName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
+        selfieInput.addEventListener('change', () => { selfieName.textContent = selfieInput.files[0]?.name || ''; });
+        selfieWrap.appendChild(selfieInput);
+        selfieWrap.appendChild(selfieLabel);
+        selfieWrap.appendChild(selfieName);
+        form.appendChild(selfieWrap);
+
+        const submitBtn = el('button', { className: 'btn btn-primary w-full', style: { marginTop: '16px', height: '48px' }, onClick: async () => {
+          const ssn = document.getElementById('kyc-ssn').value.trim();
+          if (!ssn || ssn.length < 4) { showToast('Please enter a valid SSN / Tax ID', 'error'); return; }
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
+
           try {
-            const result = await Store.submitKycDocument('ssn', ssn, '', '');
+            await Store.updateProfile({
+              name: document.getElementById('kyc-name').value.trim() || Store.user.name,
+              phone: document.getElementById('kyc-phone').value.trim(),
+              dateOfBirth: document.getElementById('kyc-dob').value.trim(),
+              address: document.getElementById('kyc-address').value.trim()
+            });
+
+            let front = ssn, back = '', selfie = '';
+            if (frontInput.files[0]) front = await readFileAsDataURL(frontInput.files[0]);
+            if (backInput.files[0]) back = await readFileAsDataURL(backInput.files[0]);
+            if (selfieInput.files[0]) selfie = await readFileAsDataURL(selfieInput.files[0]);
+
+            const result = await Store.submitKycDocument('ssn', front, back, selfie);
             if (result?.user) Store.user = result.user;
-            showToast('SSN submitted for review', 'success');
+            await Store.fetchUser();
+            showToast('Documents submitted for review', 'success');
             buildTiers('pending');
-          } catch (err) { showToast(err.message || 'Failed', 'error'); }
-          ssnUploadBtn.disabled = false;
-          ssnUploadBtn.textContent = 'Submit SSN';
-        } }, 'Submit SSN');
-        ssnSection.appendChild(ssnInput);
-        ssnSection.appendChild(ssnUploadBtn);
-        tier.appendChild(ssnSection);
+          } catch (err) { showToast(err.message || 'Submission failed', 'error'); }
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit for Review';
+        } }, 'Submit for Review');
+        form.appendChild(submitBtn);
+        tier.appendChild(form);
       }
 
-      if (t.name.includes('Standard') && t.status === 'pending' && status === 'rejected') {
-        tier.appendChild(el('div', { style: { fontSize: '12px', color: 'var(--danger, #ef4444)', marginTop: '8px' } }, 'Your SSN submission was rejected. Please re-submit.'));
+      if (t.name.includes('Standard') && status === 'pending') {
+        tier.appendChild(el('div', { style: { fontSize: '12px', color: 'var(--warning, #f59e0b)', marginTop: '12px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' } },
+          createIcon('clock', 16) + ' Your documents are being reviewed by our team.'));
+      }
+
+      if (t.name.includes('Standard') && status === 'rejected') {
+        tier.appendChild(el('div', { style: { fontSize: '12px', color: 'var(--danger, #ef4444)', marginTop: '12px', padding: '10px', background: 'var(--bg)', borderRadius: '8px' } },
+          'Your submission was rejected. Please submit your details again with correct information.'));
       }
 
       if (t.name.includes('Premium') && t.status === 'pending' && status !== 'rejected') {

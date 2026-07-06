@@ -2577,6 +2577,12 @@
   color: var(--success);
 }
 
+.verif-upload-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .btn-help {
   color: var(--primary);
   font-size: 14px;
