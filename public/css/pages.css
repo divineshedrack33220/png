@@ -3520,6 +3520,9 @@
   color: var(--primary);
   letter-spacing: 4px;
   font-family: 'Courier New', monospace;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  text-align: center;
 }
 
 .referral-stats {
