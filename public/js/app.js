@@ -3533,7 +3533,8 @@ function renderSend() {
       card.appendChild(iconWrap);
       const info = el('div', { className: 'send-wallet-info' });
       info.appendChild(el('div', { className: 'send-wallet-name' }, w.coin + ' - ' + w.name));
-      info.appendChild(el('div', { className: 'send-wallet-bal' }, w.balance + ' ' + w.coin + ' (~' + formatCurrency(w.usdValue) + ')'));
+      const bal = Store.user.balance?.[w.coin] ?? w.balance;
+      info.appendChild(el('div', { className: 'send-wallet-bal' }, bal + ' ' + w.coin + ' (~' + formatCurrency(w.usdValue) + ')'));
       card.appendChild(info);
       walletSelector.appendChild(card);
     });
@@ -3577,7 +3578,8 @@ function renderSend() {
     const amt = parseFloat(amountInput.value);
     if (!addr) { haptic('error'); showToast('Enter a destination address', 'error'); return; }
     if (!amt || amt <= 0) { haptic('error'); showToast('Enter a valid amount', 'error'); return; }
-    if (!selectedWallet || selectedWallet.balance < amt) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
+    const avail = Store.user.balance?.[coinSymbol] ?? selectedWallet.balance;
+    if (!selectedWallet || avail < amt) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
 
     sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
     sendBtn.disabled = true;
