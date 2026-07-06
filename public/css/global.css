@@ -35,6 +35,7 @@ body.modal-open {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 button {

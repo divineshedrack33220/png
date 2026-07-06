@@ -57,6 +57,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
 }
 
 .onboarding-carousel {
@@ -1607,6 +1608,7 @@
   display: flex;
   flex-direction: column;
   padding-bottom: 16px;
+  overflow-x: hidden;
 }
 
 /* Search */
@@ -3870,6 +3872,175 @@
 
   .page {
     padding-top: 8px;
+  }
+}
+
+/* ─── Onboarding Responsive ─── */
+
+@media (max-width: 380px) {
+  .onboarding-slide {
+    padding: 24px 20px;
+  }
+
+  .onboarding-illustration {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 24px;
+  }
+
+  .onboarding-illustration svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .onboarding-title {
+    font-size: 20px;
+  }
+
+  .onboarding-desc {
+    font-size: 13px;
+    max-width: 240px;
+  }
+
+  .onboarding-pagination {
+    padding: 16px 16px 24px;
+  }
+
+  .onboarding-footer {
+    padding: 0 16px 24px;
+  }
+}
+
+/* ─── Rates Responsive ─── */
+
+@media (max-width: 380px) {
+  .rates-list-header {
+    grid-template-columns: 1fr 70px 60px 20px;
+    padding: 8px 12px;
+    margin: 0 12px 4px;
+    gap: 4px;
+  }
+
+  .rates-row {
+    grid-template-columns: 1fr 70px 60px 20px;
+    padding: 10px 12px;
+    gap: 4px;
+  }
+
+  .rates-row-spark {
+    display: none;
+  }
+
+  .rates-lh-spark {
+    display: none;
+  }
+
+  .rates-row-chevron {
+    display: none;
+  }
+
+  .rates-list {
+    margin: 0 12px;
+  }
+
+  .rates-search {
+    margin: 0 12px 10px;
+  }
+
+  .rates-filters {
+    padding: 0 12px;
+  }
+
+  .rates-mkt-bar {
+    margin: 0 12px 12px;
+    padding: 10px 0;
+  }
+
+  .rates-mkt-value {
+    font-size: 13px;
+  }
+
+  .rates-carousel-card {
+    min-width: 110px;
+    padding: 10px;
+  }
+
+  .rates-carousel-title {
+    padding: 0 12px;
+  }
+
+  .rates-carousel-scroll {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .rates-converter {
+    margin: 16px 12px 0;
+    padding: 16px;
+  }
+
+  .converter-from-row {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .converter-input-lg {
+    font-size: 18px;
+  }
+
+  .converter-output-lg {
+    font-size: 18px;
+  }
+
+  .converter-select {
+    max-width: 110px;
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+
+  .rates-detail-price-val {
+    font-size: 26px;
+  }
+
+  .rates-detail-sheet {
+    padding: 12px 16px 24px;
+  }
+}
+
+@media (min-width: 381px) and (max-width: 420px) {
+  .rates-list-header {
+    grid-template-columns: 1fr 72px 64px 24px;
+    padding: 8px 12px;
+    margin: 0 12px 4px;
+  }
+
+  .rates-row {
+    grid-template-columns: 1fr 72px 64px 24px;
+    padding: 10px 12px;
+  }
+
+  .rates-row-spark {
+    display: none;
+  }
+
+  .rates-lh-spark {
+    display: none;
+  }
+
+  .rates-list {
+    margin: 0 12px;
+  }
+
+  .rates-search {
+    margin: 0 12px 10px;
+  }
+
+  .rates-filters {
+    padding: 0 12px;
+  }
+
+  .rates-mkt-bar {
+    margin: 0 12px 12px;
   }
 }
 
