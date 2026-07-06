@@ -2577,11 +2577,26 @@
   color: var(--success);
 }
 
-.verif-upload-btn {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.kyc-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg);
 }
+.kyc-upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+.kyc-upload-zone.has-file { border-color: var(--success); border-style: solid; background: rgba(16,185,129,0.05); }
+.kyc-upload-preview { display: flex; align-items: center; gap: 12px; }
+.kyc-upload-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.kyc-upload-zone.has-file .kyc-upload-icon { background: rgba(16,185,129,0.15); color: var(--success); }
+.kyc-upload-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.kyc-upload-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 .btn-help {
   color: var(--primary);

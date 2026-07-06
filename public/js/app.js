@@ -2295,92 +2295,10 @@ function renderVerification() {
       tier.appendChild(reqs);
 
       if (t.name.includes('Standard') && t.status !== 'completed' && status !== 'pending') {
-        const form = el('div', { className: 'cards-section', style: { marginTop: '16px', padding: '16px' } });
-        form.appendChild(el('div', { style: { fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' } }, 'Submit your details for verification'));
-
-        const fields = [
-          { label: 'Full Name', id: 'kyc-name', value: u.name || '', icon: 'user' },
-          { label: 'Date of Birth', id: 'kyc-dob', value: u.dateOfBirth || '', icon: 'calendar', type: 'date' },
-          { label: 'Phone Number', id: 'kyc-phone', value: u.phone || '', icon: 'phone', type: 'tel' },
-          { label: 'Address', id: 'kyc-address', value: u.address || '', icon: 'map-pin' },
-          { label: 'SSN / Tax ID', id: 'kyc-ssn', value: '', icon: 'identification-card' }
-        ];
-
-        fields.forEach(f => {
-          const row = el('div', { style: { marginBottom: '12px' } });
-          row.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '4px' } }, f.label));
-          const input = el('input', {
-            type: f.type || 'text', className: 'form-input',
-            id: f.id, placeholder: f.label,
-            value: f.value
-          });
-          row.appendChild(input);
-          form.appendChild(row);
-        });
-
-        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '16px', marginBottom: '8px' } }, 'Government ID (Front)'));
-        const frontWrap = el('div', { className: 'verif-upload-btn' });
-        const frontInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-front' });
-        const frontLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => frontInput.click() }, 'Upload ID Front');
-        const frontName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
-        frontInput.addEventListener('change', () => { frontName.textContent = frontInput.files[0]?.name || ''; });
-        frontWrap.appendChild(frontInput);
-        frontWrap.appendChild(frontLabel);
-        frontWrap.appendChild(frontName);
-        form.appendChild(frontWrap);
-
-        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '12px', marginBottom: '8px' } }, 'Government ID (Back)'));
-        const backWrap = el('div', { className: 'verif-upload-btn' });
-        const backInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-back' });
-        const backLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => backInput.click() }, 'Upload ID Back');
-        const backName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
-        backInput.addEventListener('change', () => { backName.textContent = backInput.files[0]?.name || ''; });
-        backWrap.appendChild(backInput);
-        backWrap.appendChild(backLabel);
-        backWrap.appendChild(backName);
-        form.appendChild(backWrap);
-
-        form.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginTop: '12px', marginBottom: '8px' } }, 'Selfie with ID'));
-        const selfieWrap = el('div', { className: 'verif-upload-btn' });
-        const selfieInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, id: 'kyc-selfie' });
-        const selfieLabel = el('button', { className: 'btn btn-outline btn-sm w-full', onClick: () => selfieInput.click() }, 'Upload Selfie');
-        const selfieName = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' } });
-        selfieInput.addEventListener('change', () => { selfieName.textContent = selfieInput.files[0]?.name || ''; });
-        selfieWrap.appendChild(selfieInput);
-        selfieWrap.appendChild(selfieLabel);
-        selfieWrap.appendChild(selfieName);
-        form.appendChild(selfieWrap);
-
-        const submitBtn = el('button', { className: 'btn btn-primary w-full', style: { marginTop: '16px', height: '48px' }, onClick: async () => {
-          const ssn = document.getElementById('kyc-ssn').value.trim();
-          if (!ssn || ssn.length < 4) { showToast('Please enter a valid SSN / Tax ID', 'error'); return; }
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
-
-          try {
-            await Store.updateProfile({
-              name: document.getElementById('kyc-name').value.trim() || Store.user.name,
-              phone: document.getElementById('kyc-phone').value.trim(),
-              dateOfBirth: document.getElementById('kyc-dob').value.trim(),
-              address: document.getElementById('kyc-address').value.trim()
-            });
-
-            let front = ssn, back = '', selfie = '';
-            if (frontInput.files[0]) front = await readFileAsDataURL(frontInput.files[0]);
-            if (backInput.files[0]) back = await readFileAsDataURL(backInput.files[0]);
-            if (selfieInput.files[0]) selfie = await readFileAsDataURL(selfieInput.files[0]);
-
-            const result = await Store.submitKycDocument('ssn', front, back, selfie);
-            if (result?.user) Store.user = result.user;
-            await Store.fetchUser();
-            showToast('Documents submitted for review', 'success');
-            buildTiers('pending');
-          } catch (err) { showToast(err.message || 'Submission failed', 'error'); }
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit for Review';
-        } }, 'Submit for Review');
-        form.appendChild(submitBtn);
-        tier.appendChild(form);
+        const startBtn = el('button', { className: 'btn btn-primary w-full', style: { marginTop: '16px', height: '48px' }, onClick: () => {
+          modalKycForm(() => { currentKyc = 'pending'; buildTiers('pending'); });
+        } }, 'Start Verification');
+        tier.appendChild(startBtn);
       }
 
       if (t.name.includes('Standard') && status === 'pending') {
@@ -2419,6 +2337,128 @@ function renderVerification() {
 
   page.appendChild(content);
   return page;
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function modalKycForm(onSuccess) {
+  openModal((close) => {
+    const body = el('div', { className: 'modal-body', style: { maxWidth: '480px' } });
+    const header = el('div', { className: 'modal-header' });
+    header.appendChild(el('div', { className: 'modal-title' }, 'Identity Verification'));
+    const closeBtn = el('button', { className: 'modal-close', onClick: close });
+    closeBtn.innerHTML = createIcon('x', 20);
+    header.appendChild(closeBtn);
+    body.appendChild(header);
+
+    const content = el('div', { style: { padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '24px' } });
+    const u = Store.user || {};
+
+    const personalSection = el('div', {});
+    personalSection.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } },
+      createIcon('user', 16) + ' Personal Information'));
+    const personalFields = [
+      { label: 'Full Name', id: 'kyc-name', value: u.name || '', placeholder: 'e.g. John Miller' },
+      { label: 'Date of Birth', id: 'kyc-dob', value: u.dateOfBirth || '', placeholder: 'e.g. 1990-01-15', type: 'date' },
+      { label: 'Phone Number', id: 'kyc-phone', value: u.phone || '', placeholder: 'e.g. +1 (555) 123-4567', type: 'tel' },
+      { label: 'Address', id: 'kyc-address', value: u.address || '', placeholder: 'e.g. 123 Main St, New York, NY' }
+    ];
+    personalFields.forEach(f => {
+      const wrap = el('div', { style: { marginBottom: '12px' } });
+      wrap.appendChild(el('div', { style: { fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '4px' } }, f.label));
+      wrap.appendChild(el('input', { type: f.type || 'text', className: 'form-input', id: f.id, value: f.value, placeholder: f.placeholder }));
+      personalSection.appendChild(wrap);
+    });
+    content.appendChild(personalSection);
+
+    const divider = el('div', { style: { height: '1px', background: 'var(--border)', margin: '0' } });
+    content.appendChild(divider);
+
+    const docSection = el('div', {});
+    docSection.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } },
+      createIcon('identification-card', 16) + ' Document Upload'));
+
+    const uploads = [
+      { label: 'Government ID — Front', id: 'kyc-front', icon: 'identification-card' },
+      { label: 'Government ID — Back', id: 'kyc-back', icon: 'identification-card' },
+      { label: 'Selfie with ID', id: 'kyc-selfie', icon: 'camera' }
+    ];
+
+    const uploadStates = {};
+    uploads.forEach(upl => {
+      const zone = el('div', { className: 'kyc-upload-zone', id: 'zone-' + upl.id, onClick: () => document.getElementById(upl.id).click() });
+      const preview = el('div', { className: 'kyc-upload-preview' });
+      const iconWrap = el('div', { className: 'kyc-upload-icon' });
+      iconWrap.innerHTML = createIcon(upl.icon, 24);
+      preview.appendChild(iconWrap);
+      const textWrap = el('div', {});
+      textWrap.appendChild(el('div', { className: 'kyc-upload-label' }, upl.label));
+      const fileHint = el('div', { className: 'kyc-upload-hint', id: 'hint-' + upl.id }, 'Tap to upload');
+      textWrap.appendChild(fileHint);
+      preview.appendChild(textWrap);
+      zone.appendChild(preview);
+      const input = el('input', { type: 'file', accept: 'image/*', id: upl.id, style: { display: 'none' } });
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (file) {
+          uploadStates[upl.id] = file;
+          document.getElementById('hint-' + upl.id).textContent = file.name;
+          document.getElementById('hint-' + upl.id).style.color = 'var(--success)';
+          zone.classList.add('has-file');
+        }
+      });
+      zone.appendChild(input);
+      docSection.appendChild(zone);
+    });
+    content.appendChild(docSection);
+
+    const footer = el('div', { className: 'modal-footer', style: { flexDirection: 'column', gap: '8px', paddingTop: '16px' } });
+    const submitBtn = el('button', { className: 'btn btn-primary w-full', style: { height: '48px', fontSize: '15px' }, onClick: async () => {
+      const name = document.getElementById('kyc-name').value.trim();
+      if (!name) { showToast('Full name is required', 'error'); return; }
+      if (!uploadStates['kyc-front'] || !uploadStates['kyc-back'] || !uploadStates['kyc-selfie']) {
+        showToast('Please upload all required documents', 'error'); return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
+
+      try {
+        await Store.updateProfile({
+          name: name,
+          phone: document.getElementById('kyc-phone').value.trim(),
+          dateOfBirth: document.getElementById('kyc-dob').value.trim(),
+          address: document.getElementById('kyc-address').value.trim()
+        });
+
+        const front = await readFileAsDataURL(uploadStates['kyc-front']);
+        const back = await readFileAsDataURL(uploadStates['kyc-back']);
+        const selfie = await readFileAsDataURL(uploadStates['kyc-selfie']);
+
+        const result = await Store.submitKycDocument('ssn', front, back, selfie);
+        if (result?.user) Store.user = result.user;
+        await Store.fetchUser();
+        showToast('Documents submitted for review', 'success');
+        close();
+        if (onSuccess) onSuccess();
+      } catch (err) { showToast(err.message || 'Submission failed', 'error'); }
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit for Review';
+    } }, 'Submit for Review');
+    footer.appendChild(submitBtn);
+    footer.appendChild(el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' } }, 'Your documents are encrypted and securely stored.'));
+    body.appendChild(content);
+    body.appendChild(footer);
+
+    const frag = document.createDocumentFragment();
+    frag.appendChild(body);
+    return frag;
+  });
 }
 
 function modalAddMoney() {
