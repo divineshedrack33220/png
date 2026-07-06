@@ -9,6 +9,7 @@ function initApp() {
     Store.loadAll().then(() => {
       applyLanguage();
       requestNotificationPermission();
+      Poller.start('rates', () => Store.fetchRates(), 30000);
       setTimeout(() => showTooltipWalkthrough(), 2000);
     }).catch(err => {
       console.error('Failed to load initial data:', err);
@@ -704,16 +705,16 @@ function renderHome() {
   hero.appendChild(wallet);
 
   if (Store.user?.depositAddress) {
-    const addrCard = el('div', { style: { margin: '12px auto 0', maxWidth: '320px', background: 'linear-gradient(135deg, var(--primary)10, var(--primary)05)', border: '1px solid var(--primary)20', borderRadius: '16px', padding: '14px 18px', textAlign: 'center' } });
-    const addrLabel = el('div', { style: { fontSize: '11px', fontWeight: '600', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' } }, '\u{1F4CB} Your Deposit Address');
+    const addrCard = el('div', { style: { margin: '12px auto 0', maxWidth: '320px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '14px 18px', textAlign: 'center' } });
+    const addrLabel = el('div', { style: { fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' } }, 'Your Deposit Address');
     addrCard.appendChild(addrLabel);
     const addrRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' } });
-    const addrText = el('span', { style: { fontSize: '15px', fontWeight: '500', color: 'var(--text-primary)', fontFamily: 'monospace', background: 'var(--surface)', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', letterSpacing: '0.3px' }, onClick: () => {
+    const addrText = el('span', { style: { fontSize: '15px', fontWeight: '500', color: 'white', fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', letterSpacing: '0.3px', backdropFilter: 'blur(4px)' }, onClick: () => {
       navigator.clipboard.writeText(Store.user.depositAddress);
       showToast('Deposit address copied', 'success');
     } }, Store.user.depositAddress);
     addrRow.appendChild(addrText);
-    const copyBtn = el('button', { style: { background: 'var(--primary)', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }, onClick: () => {
+    const copyBtn = el('button', { style: { background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }, onClick: () => {
       navigator.clipboard.writeText(Store.user.depositAddress);
       showToast('Deposit address copied', 'success');
     } });

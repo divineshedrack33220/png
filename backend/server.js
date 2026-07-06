@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from './src/config/db.js';
 import { seedIfEmpty } from './src/seed/seed.js';
+import { fetchLiveRates } from './src/controllers/rateController.js';
 
 import authRoutes from './src/routes/auth.js';
 import userRoutes from './src/routes/users.js';
@@ -27,7 +28,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: '*' }));
 app.use(compression());
 app.use(express.json());
-app.use(express.static(join(__dirname, '..', 'public')));
+app.use(express.static(join(__dirname, '..', 'public'), {
+  maxAge: '1s',
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  }
+}));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -54,5 +66,7 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`Coinexs running on http://localhost:${PORT}`);
   });
+  fetchLiveRates();
+  setInterval(fetchLiveRates, 60000);
 }
 start();
