@@ -3509,7 +3509,7 @@ function renderSend() {
 
   const userTier = Store.user?.tier || 1;
   const userBalance = Store.user?.balance?.USD || 0;
-  let isUsdSelected = true;
+  let isUsdLike = true;
   let selectedWallet = Store.wallets?.[0];
   let coinSymbol = 'USD';
 
@@ -3519,10 +3519,11 @@ function renderSend() {
     walletSelector.innerHTML = '';
 
     const usdCard = el('button', {
-      className: 'send-wallet-card' + (isUsdSelected ? ' active' : ''),
+      className: 'send-wallet-card' + (isUsdLike && coinSymbol === 'USD' ? ' active' : ''),
       onClick: () => {
-        isUsdSelected = true;
+        isUsdLike = true;
         coinSymbol = 'USD';
+        selectedWallet = null;
         renderWalletOptions();
         updateBalanceDisplay();
       }
@@ -3537,12 +3538,13 @@ function renderSend() {
     walletSelector.appendChild(usdCard);
 
     (Store.wallets || []).forEach(w => {
-      const isActive = !isUsdSelected && w._id === selectedWallet?._id;
+      const isUsdtLike = w.coin === 'USDT';
+      const isActive = isUsdtLike ? (isUsdLike && coinSymbol === 'USDT') : (!isUsdLike && w._id === selectedWallet?._id);
       const card = el('button', {
         className: 'send-wallet-card' + (isActive ? ' active' : ''),
         onClick: () => {
-          isUsdSelected = false;
-          selectedWallet = w;
+          isUsdLike = isUsdtLike || false;
+          selectedWallet = isUsdtLike ? null : w;
           coinSymbol = w.coin;
           renderWalletOptions();
           updateBalanceDisplay();
@@ -3568,9 +3570,9 @@ function renderSend() {
   const addressIcon = el('div', { className: 'input-icon' });
   addressIcon.innerHTML = createIcon('arrow-right', 20);
   addressWrapper.appendChild(addressIcon);
-  const addressInput = el('input', { type: 'text', placeholder: 'Recipient address', id: 'send-address', 'aria-label': 'Address', autocomplete: 'off' });
+  const addressInput = el('input', { type: 'text', placeholder: 'Recipient USD address', id: 'send-address', 'aria-label': 'Address', autocomplete: 'off' });
   addressWrapper.appendChild(addressInput);
-  const addressLabel = el('label', { className: 'form-label', htmlFor: 'send-address' }, 'Recipient Address');
+  const addressLabel = el('label', { className: 'form-label', htmlFor: 'send-address', id: 'send-address-label' }, 'Recipient Address');
   formContent.appendChild(addressLabel);
   formContent.appendChild(addressWrapper);
 
@@ -3580,7 +3582,7 @@ function renderSend() {
   amountWrapper.appendChild(amountIcon);
   const amountInput = el('input', { type: 'number', placeholder: '0.00', id: 'send-amount', 'aria-label': 'Amount', step: '0.01' });
   amountWrapper.appendChild(amountInput);
-  const amountLabel = el('label', { className: 'form-label', htmlFor: 'send-amount', id: 'send-amount-label' }, 'Amount (USD)');
+  const amountLabel = el('label', { className: 'form-label', htmlFor: 'send-amount', id: 'send-amount-label' }, 'Amount');
   formContent.appendChild(amountLabel);
   formContent.appendChild(amountWrapper);
 
@@ -3588,7 +3590,7 @@ function renderSend() {
   formContent.appendChild(balanceLabel);
 
   function updateBalanceDisplay() {
-    if (isUsdSelected) {
+    if (isUsdLike) {
       balanceLabel.textContent = 'Available: ' + formatCurrency(Store.user?.balance?.USD || 0);
     } else {
       const totalCryptoValue = (Store.wallets || []).reduce((sum, w) => sum + (w.usdValue || 0), 0);
@@ -3597,12 +3599,14 @@ function renderSend() {
     const addrWrap = document.getElementById('send-address-wrap');
     if (addrWrap) {
       const inp = addrWrap.querySelector('input');
-      if (inp) inp.placeholder = isUsdSelected ? 'Recipient address (email or account)' : 'Recipient ' + coinSymbol + ' address';
+      if (inp) inp.placeholder = 'Recipient ' + coinSymbol + ' address';
     }
+    const addrLabel = document.getElementById('send-address-label');
+    if (addrLabel) addrLabel.textContent = 'Recipient ' + coinSymbol + ' Address';
     const amtLbl = document.getElementById('send-amount-label');
-    if (amtLbl) amtLbl.textContent = 'Amount (' + (isUsdSelected ? 'USD' : coinSymbol) + ')';
+    if (amtLbl) amtLbl.textContent = 'Amount (' + coinSymbol + ')';
     const stepInput = document.getElementById('send-amount');
-    if (stepInput) stepInput.step = isUsdSelected ? '0.01' : '0.0001';
+    if (stepInput) stepInput.step = '0.01';
   }
   updateBalanceDisplay();
 
@@ -3615,12 +3619,12 @@ function renderSend() {
     if (!addr) { haptic('error'); showToast('Enter a recipient', 'error'); return; }
     if (!amt || amt <= 0) { haptic('error'); showToast('Enter a valid amount', 'error'); return; }
 
-    if (isUsdSelected) {
+    if (isUsdLike) {
       if (amt > (Store.user?.balance?.USD || 0)) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
       sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
       sendBtn.disabled = true;
       try {
-        await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send USD to ' + addr, amount: amt, currency: 'USD' });
+        await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send ' + coinSymbol + ' to ' + addr, amount: amt, currency: 'USD' });
         await Store.fetchUser();
         haptic('success');
         showToast('Sent ' + formatCurrency(amt) + ' to ' + addr, 'success');
