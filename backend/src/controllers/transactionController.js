@@ -56,7 +56,7 @@ export const getTransaction = async (req, res) => {
 
 export const createTransaction = async (req, res) => {
   try {
-    const { type, category, title, amount, currency, counterparty, fee, notes } = req.body;
+    const { type, category, title, amount, currency, counterparty, fee, notes, hold } = req.body;
 
     if (!type || !category || !title || amount === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -69,7 +69,7 @@ export const createTransaction = async (req, res) => {
       counterparty: counterparty || '',
       fee: fee || 0,
       notes: notes || '',
-      status: 'completed',
+      status: hold ? 'pending' : 'completed',
       date: new Date()
     });
 

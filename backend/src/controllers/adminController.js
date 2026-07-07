@@ -213,6 +213,15 @@ export const updateTransactionStatus = async (req, res) => {
       }
     }
 
+    if (status === 'failed' && transaction.type === 'debit') {
+      const user = await User.findById(transaction.userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const balKey = transaction.currency === 'USDT' ? 'USD' : (transaction.currency || 'USD');
+      user.balance[balKey] = (user.balance[balKey] || 0) + transaction.amount;
+      await user.save();
+    }
+
     transaction.status = status;
     transaction.type = status === 'completed' ? 'debit' : (status === 'failed' ? 'pending' : transaction.type);
     await transaction.save();
@@ -229,10 +238,22 @@ export const batchUpdateTransactionStatus = async (req, res) => {
     const { ids, status } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids array is required' });
     if (!['completed', 'failed'].includes(status)) return res.status(400).json({ error: 'Status must be completed or failed' });
+
+    if (status === 'failed') {
+      const transactions = await Transaction.find({ _id: { $in: ids }, status: 'pending', type: 'debit' });
+      for (const tx of transactions) {
+        const user = await User.findById(tx.userId);
+        if (user) {
+          const balKey = tx.currency === 'USDT' ? 'USD' : (tx.currency || 'USD');
+          user.balance[balKey] = (user.balance[balKey] || 0) + tx.amount;
+          await user.save();
+        }
+      }
+    }
+
     const result = await Transaction.updateMany(
       { _id: { $in: ids }, status: 'pending' },
-      { $set: { status } },
-      { returnDocument: 'after' }
+      { $set: { status } }
     );
     res.json({ modifiedCount: result.modifiedCount, message: result.modifiedCount + ' transactions updated' });
   } catch (err) {

