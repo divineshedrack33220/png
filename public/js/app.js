@@ -3503,25 +3503,45 @@ function renderSend() {
   const left = el('div', { className: 'page-header-left' });
   left.appendChild(iconButton('arrow_left', 24, () => navigate('/home', { direction: 'reverse' })));
   header.appendChild(left);
-  header.appendChild(el('div', { className: 'page-header-center' }, 'Send Crypto'));
+  header.appendChild(el('div', { className: 'page-header-center' }, 'Send Money'));
   header.appendChild(el('div', { className: 'page-header-right' }));
   page.appendChild(header);
 
   const userTier = Store.user?.tier || 1;
   const userBalance = Store.user?.balance?.USD || 0;
-
+  let isUsdSelected = true;
   let selectedWallet = Store.wallets?.[0];
-  let coinSymbol = selectedWallet?.coin || 'BTC';
+  let coinSymbol = 'USD';
 
   const walletSelector = el('div', { className: 'send-wallet-selector' });
 
   function renderWalletOptions() {
     walletSelector.innerHTML = '';
+
+    const usdCard = el('button', {
+      className: 'send-wallet-card' + (isUsdSelected ? ' active' : ''),
+      onClick: () => {
+        isUsdSelected = true;
+        coinSymbol = 'USD';
+        renderWalletOptions();
+        updateBalanceDisplay();
+      }
+    });
+    const usdIcon = el('div', { className: 'send-wallet-icon', style: { background: '#0052FF20', color: '#0052FF' } });
+    usdIcon.innerHTML = createIcon('currency-dollar', 20);
+    usdCard.appendChild(usdIcon);
+    const usdInfo = el('div', { className: 'send-wallet-info' });
+    usdInfo.appendChild(el('div', { className: 'send-wallet-name' }, 'USD - US Dollar'));
+    usdInfo.appendChild(el('div', { className: 'send-wallet-bal' }, formatCurrency(userBalance) + ' balance'));
+    usdCard.appendChild(usdInfo);
+    walletSelector.appendChild(usdCard);
+
     (Store.wallets || []).forEach(w => {
-      const isActive = w._id === selectedWallet?._id;
+      const isActive = !isUsdSelected && w._id === selectedWallet?._id;
       const card = el('button', {
         className: 'send-wallet-card' + (isActive ? ' active' : ''),
         onClick: () => {
+          isUsdSelected = false;
           selectedWallet = w;
           coinSymbol = w.coin;
           renderWalletOptions();
@@ -3533,7 +3553,8 @@ function renderSend() {
       card.appendChild(iconWrap);
       const info = el('div', { className: 'send-wallet-info' });
       info.appendChild(el('div', { className: 'send-wallet-name' }, w.coin + ' - ' + w.name));
-      const bal = Store.user.balance?.[w.coin] ?? w.balance;
+      const balKey = w.coin === 'USDT' ? 'USD' : w.coin;
+      const bal = Store.user.balance?.[balKey] ?? w.balance;
       info.appendChild(el('div', { className: 'send-wallet-bal' }, bal + ' ' + w.coin + ' (~' + formatCurrency(w.usdValue) + ')'));
       card.appendChild(info);
       walletSelector.appendChild(card);
@@ -3543,42 +3564,73 @@ function renderSend() {
   const formContent = el('div', { className: 'send-form-content' });
   formContent.appendChild(walletSelector);
 
-  const addressWrapper = el('div', { className: 'input-wrapper' });
+  const addressWrapper = el('div', { className: 'input-wrapper', id: 'send-address-wrap' });
   const addressIcon = el('div', { className: 'input-icon' });
   addressIcon.innerHTML = createIcon('arrow-right', 20);
   addressWrapper.appendChild(addressIcon);
-  const addressInput = el('input', { type: 'text', placeholder: 'Recipient ' + coinSymbol + ' address', id: 'send-address', 'aria-label': 'Address' });
+  const addressInput = el('input', { type: 'text', placeholder: 'Recipient address', id: 'send-address', 'aria-label': 'Address', autocomplete: 'off' });
   addressWrapper.appendChild(addressInput);
-  formContent.appendChild(el('label', { className: 'form-label', htmlFor: 'send-address' }, 'Destination Address'));
+  const addressLabel = el('label', { className: 'form-label', htmlFor: 'send-address' }, 'Recipient Address');
+  formContent.appendChild(addressLabel);
   formContent.appendChild(addressWrapper);
 
   const amountWrapper = el('div', { className: 'input-wrapper' });
   const amountIcon = el('div', { className: 'input-icon' });
   amountIcon.innerHTML = createIcon('currency-dollar', 20);
   amountWrapper.appendChild(amountIcon);
-  const amountInput = el('input', { type: 'number', placeholder: '0.00', id: 'send-amount', 'aria-label': 'Amount', step: '0.0001' });
+  const amountInput = el('input', { type: 'number', placeholder: '0.00', id: 'send-amount', 'aria-label': 'Amount', step: '0.01' });
   amountWrapper.appendChild(amountInput);
-  formContent.appendChild(el('label', { className: 'form-label', htmlFor: 'send-amount' }, 'Amount (' + coinSymbol + ')'));
+  const amountLabel = el('label', { className: 'form-label', htmlFor: 'send-amount', id: 'send-amount-label' }, 'Amount (USD)');
+  formContent.appendChild(amountLabel);
   formContent.appendChild(amountWrapper);
 
   const balanceLabel = el('div', { className: 'text-xs text-muted mb-8', id: 'send-balance-label' });
   formContent.appendChild(balanceLabel);
 
   function updateBalanceDisplay() {
-    const totalCryptoValue = (Store.wallets || []).reduce((sum, w) => sum + (w.usdValue || 0), 0);
-    balanceLabel.textContent = 'Portfolio Value: ~' + formatCurrency(totalCryptoValue);
+    if (isUsdSelected) {
+      balanceLabel.textContent = 'Available: ' + formatCurrency(Store.user?.balance?.USD || 0);
+    } else {
+      const totalCryptoValue = (Store.wallets || []).reduce((sum, w) => sum + (w.usdValue || 0), 0);
+      balanceLabel.textContent = 'Portfolio Value: ~' + formatCurrency(totalCryptoValue);
+    }
+    const addrWrap = document.getElementById('send-address-wrap');
+    if (addrWrap) {
+      const inp = addrWrap.querySelector('input');
+      if (inp) inp.placeholder = isUsdSelected ? 'Recipient address (email or account)' : 'Recipient ' + coinSymbol + ' address';
+    }
+    const amtLbl = document.getElementById('send-amount-label');
+    if (amtLbl) amtLbl.textContent = 'Amount (' + (isUsdSelected ? 'USD' : coinSymbol) + ')';
+    const stepInput = document.getElementById('send-amount');
+    if (stepInput) stepInput.step = isUsdSelected ? '0.01' : '0.0001';
   }
   updateBalanceDisplay();
 
   const canSend = userTier >= 3 && userBalance >= 5000;
 
-  const sendBtn = el('button', { className: 'btn btn-primary w-full mt-16', style: { height: '52px' } }, 'Send ' + coinSymbol);
+  const sendBtn = el('button', { className: 'btn btn-primary w-full mt-16', style: { height: '52px' } }, 'Send');
   sendBtn.addEventListener('click', async () => {
     const addr = addressInput.value.trim();
     const amt = parseFloat(amountInput.value);
-    if (!addr) { haptic('error'); showToast('Enter a destination address', 'error'); return; }
+    if (!addr) { haptic('error'); showToast('Enter a recipient', 'error'); return; }
     if (!amt || amt <= 0) { haptic('error'); showToast('Enter a valid amount', 'error'); return; }
-    const avail = Store.user.balance?.[coinSymbol] ?? selectedWallet.balance;
+
+    if (isUsdSelected) {
+      if (amt > (Store.user?.balance?.USD || 0)) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
+      sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
+      sendBtn.disabled = true;
+      try {
+        await Store.createTransaction({ type: 'debit', category: 'transfer', title: 'Send USD to ' + addr, amount: amt, currency: 'USD' });
+        await Store.fetchUser();
+        haptic('success');
+        showToast('Sent ' + formatCurrency(amt) + ' to ' + addr, 'success');
+        setTimeout(() => navigate('/home'), 1200);
+      } catch (err) { showToast(err.message || 'Failed', 'error'); sendBtn.innerHTML = 'Send'; sendBtn.disabled = false; }
+      return;
+    }
+
+    const balKey = coinSymbol === 'USDT' ? 'USD' : coinSymbol;
+    const avail = Store.user.balance?.[balKey] ?? selectedWallet.balance;
     if (!selectedWallet || avail < amt) { haptic('error'); showToast('Insufficient funds', 'error'); return; }
 
     sendBtn.innerHTML = '<div class="spinner spinner-sm"></div>';
@@ -3592,7 +3644,7 @@ function renderSend() {
         showToast('Withdrawal submitted for review', 'success');
         sendLocalNotification('Withdrawal Pending', amt + ' ' + coinSymbol + ' withdrawal awaiting admin approval');
         setTimeout(() => navigate('/home'), 1200);
-      } catch (err) { showToast(err.message || 'Failed', 'error'); sendBtn.innerHTML = 'Send ' + coinSymbol; sendBtn.disabled = false; }
+      } catch (err) { showToast(err.message || 'Failed', 'error'); sendBtn.innerHTML = 'Send'; sendBtn.disabled = false; }
       return;
     }
 
@@ -3603,7 +3655,7 @@ function renderSend() {
       await Store.fetchWallets();
     } catch (err) {
       showToast(err.message || 'Failed to hold funds', 'error');
-      sendBtn.innerHTML = 'Send ' + coinSymbol;
+      sendBtn.innerHTML = 'Send';
       sendBtn.disabled = false;
       return;
     }
@@ -4183,15 +4235,16 @@ function renderSwap() {
   swapBtnEl.addEventListener('click', async () => {
     const val = parseFloat(fromInput.value) || 0;
     if (val <= 0) { haptic('error'); showToast(t('enter_valid_amount'), 'error'); return; }
-    const fromBalance = fromCoin === 'USD' ? (Store.user.balance?.USD || 0) : (Store.user.balance?.[fromCoin] || 0);
+    const balKey = fromCoin === 'USDT' ? 'USD' : fromCoin;
+    const fromBalance = Store.user.balance?.[balKey] || 0;
     if (fromBalance < val) { haptic('error'); showToast('Insufficient ' + fromCoin + ' balance', 'error'); return; }
     swapBtnEl.innerHTML = '<div class="spinner spinner-sm"></div>';
     swapBtnEl.disabled = true;
     try {
-      await Store.createTransaction({ type: 'debit', category: 'exchange', title: fromCoin + ' to ' + toCoin + ' Swap', amount: val });
+      await Store.createTransaction({ type: 'debit', category: 'exchange', title: fromCoin + ' to ' + toCoin + ' Swap', amount: val, currency: fromCoin === 'USDT' ? 'USD' : fromCoin });
       const key = fromCoin + '-' + toCoin;
       const rate = rates[key] || 1;
-      await Store.createTransaction({ type: 'credit', category: 'exchange', title: toCoin + ' from ' + fromCoin + ' Swap', amount: val * rate });
+      await Store.createTransaction({ type: 'credit', category: 'exchange', title: toCoin + ' from ' + fromCoin + ' Swap', amount: val * rate, currency: toCoin === 'USDT' ? 'USD' : toCoin });
       await Store.fetchUser();
       await Store.fetchTransactions();
       haptic('success');
