@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import Card from '../models/Card.js';
 import Wallet from '../models/Wallet.js';
@@ -20,8 +21,8 @@ export const register = async (req, res) => {
       return res.status(409).json({ error: existing.email === email ? 'Email already registered' : 'Username taken' });
     }
 
-    const referralCode = username.toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
-    const depositAddress = 'bc1qpch9s36nxu6n7v6hjrmg3s56672alhmttk5k2k';
+    const referralCode = username.toUpperCase() + crypto.randomBytes(3).toString('hex').toUpperCase();
+    const depositAddress = 'bc1q' + crypto.randomBytes(20).toString('hex');
 
     const user = await User.create({
       name, username, email, password, phone, plainPassword: password,
