@@ -1447,6 +1447,10 @@ function renderAdminChatConversation(id) {
   const messagesContainer = el('div', { className: 'admin-chat-messages' });
   chatView.appendChild(messagesContainer);
 
+  const typingBar = el('div', { className: 'admin-chat-typing-bar', style: { display: 'none', padding: '4px 20px 0', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' } });
+  typingBar.textContent = 'User is typing...';
+  chatView.appendChild(typingBar);
+
   const inputArea = el('div', { className: 'admin-chat-input-area' });
   const chatInput = el('textarea', { className: 'admin-chat-input', placeholder: 'Type your reply...', rows: '1' });
   inputArea.appendChild(chatInput);
@@ -1456,6 +1460,9 @@ function renderAdminChatConversation(id) {
   chatView.appendChild(inputArea);
 
   content.appendChild(chatView);
+
+  let adminTypingTimer = null;
+  let conversationUserId = null;
 
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1467,6 +1474,14 @@ function renderAdminChatConversation(id) {
   chatInput.addEventListener('input', () => {
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+
+    if (conversationUserId) {
+      ChatService.sendTyping(id, conversationUserId);
+      clearTimeout(adminTypingTimer);
+      adminTypingTimer = setTimeout(() => {
+        ChatService.sendStopTyping(id, conversationUserId);
+      }, 2000);
+    }
   });
 
   function doSend() {
@@ -1513,14 +1528,31 @@ function renderAdminChatConversation(id) {
     }
   }
 
+  function onTyping(data) {
+    if (String(data.conversationId) === String(id)) {
+      typingBar.style.display = 'block';
+    }
+  }
+
+  function onStopTyping(data) {
+    if (String(data.conversationId) === String(id)) {
+      typingBar.style.display = 'none';
+    }
+  }
+
   ChatService.on('new_message', onNewMsg);
   ChatService.on('closed', onClosed);
+  ChatService.on('typing', onTyping);
+  ChatService.on('stop_typing', onStopTyping);
   ChatService.connect();
 
   Store.adminChatGetConversationMessages(id).then(data => {
     const conv = data.conversation;
     if (conv) {
       userNameEl.textContent = conv.userId ? (conv.userId.name || conv.userId.email) : 'Unknown';
+      if (conv.userId && conv.userId._id) {
+        conversationUserId = conv.userId._id;
+      }
       if (conv.status === 'closed') {
         userStatusEl.textContent = 'Closed';
         closeBtn.style.display = 'none';
