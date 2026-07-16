@@ -3397,7 +3397,7 @@ function modalLiveChat() {
 
     function doSend() {
       const text = chatInput.value.trim();
-      if (!text || !currentConvId) return;
+      if (!text) return;
       chatInput.value = '';
       disableSend();
 
@@ -3406,13 +3406,19 @@ function modalLiveChat() {
       messages.scrollTop = messages.scrollHeight;
 
       Store.chatSendMessage(text).then(data => {
+        if (!currentConvId && data.conversation) {
+          currentConvId = data.conversation._id;
+          ChatService.joinConversation(currentConvId);
+        }
         const lastMsg = messages.lastElementChild;
-        if (lastMsg && lastMsg.querySelector('[style*="var(--primary)"]')) {
+        if (lastMsg) {
           const bubble = lastMsg.querySelector('div[style]');
           if (bubble) bubble.setAttribute('data-id', data.message._id);
         }
+        enableSend();
       }).catch(() => {
         showToast('Failed to send message', 'error');
+        enableSend();
       });
     }
 
