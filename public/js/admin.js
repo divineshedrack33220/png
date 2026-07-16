@@ -12,6 +12,26 @@ function adminGuard() {
   return true;
 }
 
+let adminChatNotifInitialized = false;
+function initAdminChatNotifications() {
+  if (adminChatNotifInitialized) return;
+  adminChatNotifInitialized = true;
+  if (Notification && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  ChatService.connect();
+  ChatService.on('new_message', (data) => {
+    if (data.message && data.message.senderRole === 'user') {
+      if (Notification && Notification.permission === 'granted') {
+        new Notification('New Chat Message', {
+          body: data.message.text.substring(0, 100),
+          icon: 'assets/images/favicon-192.png'
+        });
+      }
+    }
+  });
+}
+
 function adminPageLayout(title, activeTab) {
   const wrapper = el('div', { className: 'admin-wrapper' });
   const sidebar = el('div', { className: 'admin-sidebar' });
@@ -163,6 +183,7 @@ function renderAdminLogin() {
         return;
       }
       Store.user = user;
+      initAdminChatNotifications();
       navigate('/admin');
     }).catch(err => {
       Store.logout();
@@ -1233,6 +1254,13 @@ function renderAdminNotifications() {
       historyContainer.innerHTML = '';
       data.notifications.forEach(n => {
         const row = el('div', { className: 'admin-table-row' });
+        const typeColors = { chat: '#0052FF', transaction: '#10B981', system: '#6B7280', security: '#EF4444', promotion: '#F59E0B' };
+        const typeIcons = { chat: 'chat-dots', transaction: 'coins', system: 'bell', security: 'shield-check', promotion: 'gift' };
+        const color = typeColors[n.type] || '#6B7280';
+        const icon = typeIcons[n.type] || 'bell';
+        const iconWrap = el('div', { className: 'admin-row-icon', style: { background: color + '18', color } });
+        iconWrap.innerHTML = createIcon(icon, 16);
+        row.appendChild(iconWrap);
         row.appendChild(el('div', { className: 'admin-row-main' },
           el('div', { className: 'admin-row-title' }, n.title),
           el('div', { className: 'admin-row-sub' }, (n.userId ? n.userId.name || n.userId.email : 'All') + ' · ' + new Date(n.createdAt).toLocaleDateString())

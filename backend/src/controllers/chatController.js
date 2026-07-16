@@ -1,5 +1,7 @@
 import Conversation from '../models/Conversation.js';
 import ChatMessage from '../models/ChatMessage.js';
+import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 
 export const getOrCreateConversation = async (req, res) => {
   try {
@@ -59,6 +61,22 @@ export const sendMessage = async (req, res) => {
           createdAt: message.createdAt
         }
       });
+    }
+
+    if (message.senderRole === 'user') {
+      const sender = await User.findById(req.userId).select('name email');
+      const senderName = sender ? (sender.name || sender.email) : 'User';
+      const admins = await User.find({ role: { $in: ['admin', 'superadmin'] }, isDeleted: false }).select('_id');
+      if (admins.length > 0) {
+        await Notification.insertMany(admins.map(admin => ({
+          userId: admin._id,
+          title: 'New Chat Message',
+          message: senderName + ': ' + text.trim().substring(0, 100),
+          type: 'chat',
+          metadata: { conversationId: conversation._id, senderId: req.userId },
+          action: { label: 'View Chat', route: '/admin/chat/' + conversation._id }
+        })));
+      }
     }
 
     res.status(201).json({ message, conversation });
@@ -145,6 +163,15 @@ export const adminSendMessage = async (req, res) => {
         }
       });
     }
+
+    await Notification.create({
+      userId: conversation.userId,
+      title: 'Support Reply',
+      message: text.trim().substring(0, 100),
+      type: 'chat',
+      metadata: { conversationId: conversation._id },
+      action: { label: 'View Chat', route: '/support' }
+    });
 
     res.status(201).json({ message });
   } catch (err) {
