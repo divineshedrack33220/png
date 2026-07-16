@@ -30,7 +30,8 @@ function adminPageLayout(title, activeTab) {
     { icon: 'gift', label: 'Gift Cards', route: '/admin/giftcards' },
     { icon: 'identification-card', label: 'KYC', route: '/admin/kyc' },
     { icon: 'bell', label: 'Notifications', route: '/admin/notifications' },
-    { icon: 'download-simple', label: 'Deposits', route: '/admin/deposits' }
+    { icon: 'download-simple', label: 'Deposits', route: '/admin/deposits' },
+    { icon: 'chat-dots', label: 'Live Chat', route: '/admin/chat' }
   ];
 
   const nav = el('div', { className: 'admin-nav' });
@@ -53,6 +54,14 @@ function adminPageLayout(title, activeTab) {
         const pending = (data.claims || []).length;
         if (pending > 0) {
           const badge = el('span', { className: 'admin-badge' }, String(pending));
+          btn.appendChild(badge);
+        }
+      }).catch(() => {});
+    }
+    if (item.route === '/admin/chat') {
+      Store.adminChatGetOpenCount().then(data => {
+        if (data.count > 0) {
+          const badge = el('span', { className: 'admin-badge' }, String(data.count));
           btn.appendChild(badge);
         }
       }).catch(() => {});
@@ -1321,4 +1330,233 @@ function renderAdminDeposits() {
 
   loadClaims();
   return wrapper;
+}
+
+function renderAdminChat() {
+  if (!adminGuard()) { const d = el('div', { style: { display: 'flex', justifyContent: 'center', padding: '60px 0' } }); d.innerHTML = '<div class="spinner spinner-lg"></div>'; return d; }
+  const { wrapper, content } = adminPageLayout('Live Chat', '/admin/chat');
+
+  const toolbar = el('div', { className: 'admin-toolbar' });
+  const filterAll = el('button', { className: 'admin-chip active', onClick: () => { activeFilter = ''; loadConversations(); updateFilterUI(); } }, 'All');
+  const filterOpen = el('button', { className: 'admin-chip', onClick: () => { activeFilter = 'open'; loadConversations(); updateFilterUI(); } }, 'Open');
+  const filterClosed = el('button', { className: 'admin-chip', onClick: () => { activeFilter = 'closed'; loadConversations(); updateFilterUI(); } }, 'Closed');
+  toolbar.appendChild(filterAll);
+  toolbar.appendChild(filterOpen);
+  toolbar.appendChild(filterClosed);
+  content.appendChild(toolbar);
+
+  let activeFilter = '';
+  function updateFilterUI() {
+    [filterAll, filterOpen, filterClosed].forEach(btn => btn.classList.remove('active'));
+    if (activeFilter === '') filterAll.classList.add('active');
+    else if (activeFilter === 'open') filterOpen.classList.add('active');
+    else filterClosed.classList.add('active');
+  }
+
+  const container = el('div', { className: 'admin-table-container' });
+  content.appendChild(container);
+
+  ChatService.connect();
+
+  function loadConversations() {
+    container.innerHTML = '<div class="admin-empty">Loading conversations...</div>';
+    Store.adminChatGetAllConversations(activeFilter).then(data => {
+      container.innerHTML = '';
+      const conversations = data.conversations || [];
+      if (conversations.length === 0) {
+        container.appendChild(el('div', { className: 'admin-empty' }, 'No conversations found'));
+        return;
+      }
+      conversations.forEach(conv => {
+        const userName = conv.userId ? (conv.userId.name || conv.userId.email) : 'Unknown';
+        const userEmail = conv.userId ? conv.userId.email : '';
+        const lastMsg = conv.lastMessage || 'No messages';
+        const timeAgo = getTimeAgo(conv.lastMessageAt);
+        const isOpen = conv.status === 'open';
+
+        const row = el('div', { className: 'admin-table-row', role: 'button', onClick: () => navigate('/admin/chat/' + conv._id) });
+
+        const avatarDiv = el('div', { className: 'admin-row-icon', style: { background: isOpen ? '#10B98120' : '#6B728020', color: isOpen ? '#10B981' : '#6B7280' } });
+        avatarDiv.innerHTML = createIcon('chat-dots', 16);
+        row.appendChild(avatarDiv);
+
+        const mainDiv = el('div', { className: 'admin-row-main' });
+        const titleRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } });
+        titleRow.appendChild(el('div', { className: 'admin-row-title' }, userName));
+        const statusBadge = el('span', { className: 'admin-kyc-badge ' + (isOpen ? 'active' : 'none') }, isOpen ? 'Open' : 'Closed');
+        titleRow.appendChild(statusBadge);
+        mainDiv.appendChild(titleRow);
+        const subRow = el('div', { className: 'admin-row-sub' }, lastMsg.length > 60 ? lastMsg.substring(0, 60) + '...' : lastMsg);
+        mainDiv.appendChild(subRow);
+        if (userEmail) {
+          mainDiv.appendChild(el('div', { className: 'admin-row-sub', style: { fontSize: '10px' } }, userEmail));
+        }
+        row.appendChild(mainDiv);
+
+        const timeDiv = el('div', { style: { fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: '0' } }, timeAgo);
+        row.appendChild(timeDiv);
+
+        container.appendChild(row);
+      });
+    }).catch(() => {
+      container.innerHTML = '<div class="admin-empty">Failed to load conversations</div>';
+    });
+  }
+
+  loadConversations();
+  return wrapper;
+}
+
+function renderAdminChatConversation(id) {
+  if (!adminGuard()) { const d = el('div', { style: { display: 'flex', justifyContent: 'center', padding: '60px 0' } }); d.innerHTML = '<div class="spinner spinner-lg"></div>'; return d; }
+  const { wrapper, content } = adminPageLayout('Chat', '/admin/chat');
+  content.style.padding = '0';
+  content.style.maxWidth = '100%';
+
+  const chatView = el('div', { className: 'admin-chat-view' });
+
+  const chatHeader = el('div', { className: 'admin-chat-header' });
+  const backBtn = el('button', { className: 'admin-icon-btn', onClick: () => navigate('/admin/chat') });
+  backBtn.innerHTML = createIcon('arrow_left', 18);
+  chatHeader.appendChild(backBtn);
+
+  const userInfo = el('div', { style: { flex: '1' } });
+  const userNameEl = el('div', { className: 'admin-chat-user-name' }, 'Loading...');
+  const userStatusEl = el('div', { className: 'admin-chat-user-status' }, '');
+  userInfo.appendChild(userNameEl);
+  userInfo.appendChild(userStatusEl);
+  chatHeader.appendChild(userInfo);
+
+  const closeBtn = el('button', { className: 'admin-chat-close-btn', onClick: async () => {
+    if (!confirm('End this conversation?')) return;
+    try {
+      await Store.adminChatClose(id);
+      showToast('Conversation ended', 'success');
+      userStatusEl.textContent = 'Closed';
+      closeBtn.style.display = 'none';
+      chatInput.disabled = true;
+      sendBtn.style.opacity = '0.5';
+      sendBtn.style.pointerEvents = 'none';
+    } catch (err) {
+      showToast(err.message || 'Failed to close', 'error');
+    }
+  } }, 'End Chat');
+  chatHeader.appendChild(closeBtn);
+  chatView.appendChild(chatHeader);
+
+  const messagesContainer = el('div', { className: 'admin-chat-messages' });
+  chatView.appendChild(messagesContainer);
+
+  const inputArea = el('div', { className: 'admin-chat-input-area' });
+  const chatInput = el('textarea', { className: 'admin-chat-input', placeholder: 'Type your reply...', rows: '1' });
+  inputArea.appendChild(chatInput);
+  const sendBtn = el('button', { className: 'admin-chat-send-btn', onClick: doSend });
+  sendBtn.innerHTML = createIcon('paper-plane', 18);
+  inputArea.appendChild(sendBtn);
+  chatView.appendChild(inputArea);
+
+  content.appendChild(chatView);
+
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      doSend();
+    }
+  });
+
+  chatInput.addEventListener('input', () => {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+  });
+
+  function doSend() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+
+    const optimistic = { _id: 'temp_' + Date.now(), senderRole: 'admin', text, createdAt: new Date().toISOString() };
+    renderMessage(optimistic);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    Store.adminChatSendMessage(id, text).catch(() => {
+      showToast('Failed to send message', 'error');
+    });
+  }
+
+  function renderMessage(msg) {
+    const isAdmin = msg.senderRole === 'admin';
+    const row = el('div', { className: 'admin-chat-bubble-row ' + (isAdmin ? 'admin' : 'user') });
+    if (!isAdmin) {
+      const avatar = el('div', { className: 'admin-chat-bubble-avatar' }, 'U');
+      row.appendChild(avatar);
+    }
+    const bubble = el('div', { className: 'admin-chat-bubble ' + (isAdmin ? 'admin' : 'user') }, msg.text);
+    row.appendChild(bubble);
+    messagesContainer.appendChild(row);
+  }
+
+  function onNewMsg(data) {
+    if (data.conversationId === id && data.message.senderRole === 'user') {
+      renderMessage(data.message);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }
+
+  function onClosed(data) {
+    if (data.conversationId === id) {
+      userStatusEl.textContent = 'Closed';
+      closeBtn.style.display = 'none';
+      chatInput.disabled = true;
+      sendBtn.style.opacity = '0.5';
+      sendBtn.style.pointerEvents = 'none';
+    }
+  }
+
+  ChatService.on('new_message', onNewMsg);
+  ChatService.on('closed', onClosed);
+  ChatService.connect();
+
+  Store.adminChatGetConversationMessages(id).then(data => {
+    const conv = data.conversation;
+    if (conv) {
+      userNameEl.textContent = conv.userId ? (conv.userId.name || conv.userId.email) : 'Unknown';
+      if (conv.status === 'closed') {
+        userStatusEl.textContent = 'Closed';
+        closeBtn.style.display = 'none';
+        chatInput.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.style.pointerEvents = 'none';
+      } else {
+        userStatusEl.textContent = 'Online';
+        userStatusEl.style.color = '#10B981';
+      }
+    }
+    if (data.messages && data.messages.length > 0) {
+      data.messages.forEach(msg => renderMessage(msg));
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } else {
+      messagesContainer.appendChild(el('div', { className: 'admin-empty', style: { padding: '40px' } }, 'No messages yet'));
+    }
+    ChatService.joinConversation(id);
+  }).catch(() => {
+    userNameEl.textContent = 'Failed to load conversation';
+  });
+
+  return wrapper;
+}
+
+function getTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const seconds = Math.floor((now - date) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days + 'd ago';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

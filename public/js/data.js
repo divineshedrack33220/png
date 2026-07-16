@@ -349,7 +349,17 @@ const Store = {
   async adminSendNotification(data) { return await api('/admin/notifications', { method: 'POST', body: JSON.stringify(data) }); },
   async claimDeposit(amount, txHash) { return await api('/deposits/claim', { method: 'POST', body: JSON.stringify({ amount, txHash }) }); },
   async adminGetDepositClaims(status) { const q = status ? '?status=' + status : ''; return await api('/admin/deposits' + q); },
-  async adminReviewDepositClaim(id, status, adminNote) { return await api('/admin/deposits/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status, adminNote }) }); }
+  async adminReviewDepositClaim(id, status, adminNote) { return await api('/admin/deposits/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status, adminNote }) }); },
+
+  async chatGetConversation() { return await api('/chat/conversation'); },
+  async chatGetMessages() { return await api('/chat/messages'); },
+  async chatSendMessage(text) { return await api('/chat/messages', { method: 'POST', body: JSON.stringify({ text }) }); },
+  async adminChatGetConversations(status) { const q = status ? '?status=' + status : ''; return await api('/chat/admin/conversations' + q); },
+  async adminChatGetAllConversations(status) { const q = status ? '?status=' + status : ''; return await api('/chat/admin/conversations/all' + q); },
+  async adminChatGetConversationMessages(id) { return await api('/chat/admin/' + id + '/messages'); },
+  async adminChatSendMessage(id, text) { return await api('/chat/admin/' + id + '/messages', { method: 'POST', body: JSON.stringify({ text }) }); },
+  async adminChatClose(id) { return await api('/chat/admin/' + id + '/close', { method: 'PUT' }); },
+  async adminChatGetOpenCount() { return await api('/chat/admin/conversations/count'); }
 };
 
 const state = {
@@ -388,5 +398,76 @@ const Poller = {
   },
   stopAll() {
     Object.keys(this._timers).forEach(k => this.stop(k));
+  }
+};
+
+const ChatService = {
+  socket: null,
+  _listeners: {},
+
+  connect() {
+    if (this.socket && this.socket.connected) return;
+    const token = localStorage.getItem('coinexs_token');
+    if (!token) return;
+    this.socket = io({ auth: { token } });
+
+    this.socket.on('connect', () => {});
+
+    this.socket.on('chat:new_message', (data) => {
+      this._emit('new_message', data);
+    });
+
+    this.socket.on('chat:typing', (data) => {
+      this._emit('typing', data);
+    });
+
+    this.socket.on('chat:stop_typing', (data) => {
+      this._emit('stop_typing', data);
+    });
+
+    this.socket.on('chat:closed', (data) => {
+      this._emit('closed', data);
+    });
+
+    this.socket.on('disconnect', () => {});
+  },
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    this._listeners = {};
+  },
+
+  joinConversation(conversationId) {
+    if (this.socket) this.socket.emit('chat:join', conversationId);
+  },
+
+  leaveConversation(conversationId) {
+    if (this.socket) this.socket.emit('chat:leave', conversationId);
+  },
+
+  sendTyping(conversationId, userId) {
+    if (this.socket) this.socket.emit('chat:typing', { conversationId, userId });
+  },
+
+  sendStopTyping(conversationId, userId) {
+    if (this.socket) this.socket.emit('chat:stop_typing', { conversationId, userId });
+  },
+
+  on(event, callback) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(callback);
+  },
+
+  off(event, callback) {
+    if (!this._listeners[event]) return;
+    this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
+  },
+
+  _emit(event, data) {
+    if (!this._listeners[event]) return;
+    this._listeners[event].forEach(cb => cb(data));
   }
 };

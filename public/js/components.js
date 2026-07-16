@@ -115,7 +115,9 @@ function createIcon(name, size) {
     'star-fill': 'ph-fill ph-star',
     'caret-right': 'ph-caret-right',
     'warning': 'ph-warning',
-    'trash': 'ph-trash'
+    'trash': 'ph-trash',
+    'chat-dots': 'ph-chat-dots',
+    'paper_plane': 'ph-paper-plane-tilt'
   };
   var cls = map[name];
   if (!cls) return '';

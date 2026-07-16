@@ -95,6 +95,8 @@ function registerRoutes() {
   registerRoute('/admin/notifications', () => typeof renderAdminNotifications === 'function' ? renderAdminNotifications() : navigate('/home'));
   registerRoute('/admin/deposits', () => typeof renderAdminDeposits === 'function' ? renderAdminDeposits() : navigate('/home'));
   registerRoute('/admin/users/:id', () => typeof renderAdminUserDetail === 'function' ? renderAdminUserDetail(state.params.id) : navigate('/home'));
+  registerRoute('/admin/chat', () => typeof renderAdminChat === 'function' ? renderAdminChat() : navigate('/home'));
+  registerRoute('/admin/chat/:id', () => typeof renderAdminChatConversation === 'function' ? renderAdminChatConversation(state.params.id) : navigate('/home'));
 }
 
 function renderSplash() {
@@ -3313,48 +3315,184 @@ function modalDocumentUpload() {
 
 function modalLiveChat() {
   openModal((close) => {
-    const body = el('div', { className: 'modal-body', style: { display: 'flex', flexDirection: 'column', height: '60vh' } });
+    const body = el('div', { className: 'modal-body', style: { display: 'flex', flexDirection: 'column', height: '70vh' } });
     const header = el('div', { className: 'modal-header' });
     header.appendChild(el('div', { className: 'modal-title' }, 'Live Chat'));
-    const closeBtn = el('button', { className: 'modal-close', onClick: close });
+    const closeBtn = el('button', { className: 'modal-close', onClick: () => { ChatService.leaveConversation(currentConvId); ChatService.off('new_message', onNewMsg); ChatService.off('typing', onTyping); ChatService.off('stop_typing', onStopTyping); ChatService.off('closed', onClosed); close(); } });
     closeBtn.innerHTML = createIcon('x', 20);
     header.appendChild(closeBtn);
     body.appendChild(header);
 
-    const messages = el('div', { style: { flex: '1', overflowY: 'auto', padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' } });
+    const statusBar = el('div', { className: 'chat-status-bar', style: { padding: '6px 16px', fontSize: '11px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', display: 'none' } });
+    body.appendChild(statusBar);
 
-    const botMsg = el('div', { style: { display: 'flex', gap: '8px', maxWidth: '80%' } });
-    const botAvatar = el('div', { style: { width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', fontSize: '12px', fontWeight: '700' } }, 'CX');
-    const botBubble = el('div', { style: { background: 'var(--bg)', borderRadius: '12px', padding: '10px 14px', fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.5' } }, 'Hi! How can we help you today? You can ask about your account, transactions, or card.');
-    botMsg.appendChild(botAvatar);
-    botMsg.appendChild(botBubble);
-    messages.appendChild(botMsg);
+    const messages = el('div', { className: 'chat-messages-container', style: { flex: '1', overflowY: 'auto', padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' } });
     body.appendChild(messages);
 
-    const inputRow = el('div', { style: { display: 'flex', gap: '8px', padding: '12px 0', borderTop: '1px solid var(--border)' } });
+    const inputRow = el('div', { style: { display: 'flex', gap: '8px', padding: '12px 16px', borderTop: '1px solid var(--border)' } });
     const chatInput = el('input', { type: 'text', placeholder: 'Type a message...', style: { flex: '1', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '9999px', fontSize: '14px', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' } });
     inputRow.appendChild(chatInput);
-    const sendBtn = el('button', { style: { width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }, onClick: () => {
-      if (!chatInput.value.trim()) return;
-      const userMsg = el('div', { style: { display: 'flex', gap: '8px', maxWidth: '80%', alignSelf: 'flex-end' } });
-      const userBubble = el('div', { style: { background: 'var(--primary)', color: 'white', borderRadius: '12px', padding: '10px 14px', fontSize: '14px', lineHeight: '1.5' } }, chatInput.value);
-      userMsg.appendChild(userBubble);
-      messages.appendChild(userMsg);
-      chatInput.value = '';
-      messages.scrollTop = messages.scrollHeight;
-      setTimeout(() => {
-        const reply = el('div', { style: { display: 'flex', gap: '8px', maxWidth: '80%' } });
-        const replyAvatar = el('div', { style: { width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', fontSize: '12px', fontWeight: '700' } }, 'CX');
-        const replyBubble = el('div', { style: { background: 'var(--bg)', borderRadius: '12px', padding: '10px 14px', fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.5' } }, 'Thanks for reaching out! A support agent will be with you shortly. In the meantime, check our FAQ section for quick answers.');
-        reply.appendChild(replyAvatar);
-        reply.appendChild(replyBubble);
-        messages.appendChild(reply);
-        messages.scrollTop = messages.scrollHeight;
-      }, 1000);
-    } });
-    sendBtn.innerHTML = createIcon('paper_plane', 18);
+    const sendBtn = el('button', { style: { width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', opacity: '0.5', pointerEvents: 'none' } });
+    sendBtn.innerHTML = createIcon('paper-plane', 18);
     inputRow.appendChild(sendBtn);
     body.appendChild(inputRow);
+
+    let currentConvId = null;
+    let typingTimer = null;
+
+    function enableSend() {
+      sendBtn.style.opacity = '1';
+      sendBtn.style.pointerEvents = 'auto';
+    }
+    function disableSend() {
+      sendBtn.style.opacity = '0.5';
+      sendBtn.style.pointerEvents = 'none';
+    }
+
+    function renderMessage(msg, prepend) {
+      const isAdmin = msg.senderRole === 'admin';
+      const isUser = !isAdmin;
+      const row = el('div', { style: { display: 'flex', gap: '8px', maxWidth: '80%', alignSelf: isUser ? 'flex-end' : 'flex-start', flexDirection: isUser ? 'row-reverse' : 'row' } });
+      if (!isUser) {
+        const avatar = el('div', { className: 'chat-avatar', style: { width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', fontSize: '12px', fontWeight: '700' } }, 'CX');
+        row.appendChild(avatar);
+      }
+      const bubble = el('div', { style: { background: isUser ? 'var(--primary)' : 'var(--bg)', color: isUser ? 'white' : 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word' } }, msg.text);
+      row.appendChild(bubble);
+      if (prepend) {
+        messages.insertBefore(row, messages.firstChild);
+      } else {
+        messages.appendChild(row);
+      }
+    }
+
+    function renderTypingIndicator() {
+      let existing = messages.querySelector('.typing-indicator');
+      if (existing) return;
+      const row = el('div', { className: 'typing-indicator', style: { display: 'flex', gap: '8px', maxWidth: '80%' } });
+      const avatar = el('div', { style: { width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', fontSize: '12px', fontWeight: '700' } }, 'CX');
+      const dots = el('div', { style: { background: 'var(--bg)', borderRadius: '12px', padding: '10px 14px', display: 'flex', gap: '4px', alignItems: 'center' } });
+      for (let i = 0; i < 3; i++) {
+        const dot = el('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)', animation: 'typingBounce 1.4s infinite ease-in-out', animationDelay: (i * 0.2) + 's' } });
+        dots.appendChild(dot);
+      }
+      row.appendChild(avatar);
+      row.appendChild(dots);
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const existing = messages.querySelector('.typing-indicator');
+      if (existing) existing.remove();
+    }
+
+    function showStatus(text) {
+      statusBar.textContent = text;
+      statusBar.style.display = 'block';
+    }
+    function hideStatus() {
+      statusBar.style.display = 'none';
+    }
+
+    function doSend() {
+      const text = chatInput.value.trim();
+      if (!text || !currentConvId) return;
+      chatInput.value = '';
+      disableSend();
+
+      const optimistic = { _id: 'temp_' + Date.now(), senderRole: 'user', text, createdAt: new Date().toISOString() };
+      renderMessage(optimistic);
+      messages.scrollTop = messages.scrollHeight;
+
+      Store.chatSendMessage(text).then(data => {
+        const lastMsg = messages.lastElementChild;
+        if (lastMsg && lastMsg.querySelector('[style*="var(--primary)"]')) {
+          const bubble = lastMsg.querySelector('div[style]');
+          if (bubble) bubble.setAttribute('data-id', data.message._id);
+        }
+      }).catch(() => {
+        showToast('Failed to send message', 'error');
+      });
+    }
+
+    sendBtn.addEventListener('click', doSend);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSend(); } });
+    chatInput.addEventListener('input', () => {
+      if (chatInput.value.trim()) enableSend();
+      else disableSend();
+
+      if (currentConvId && ChatService.socket) {
+        ChatService.sendTyping(currentConvId);
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+          ChatService.sendStopTyping(currentConvId);
+        }, 2000);
+      }
+    });
+
+    function onNewMsg(data) {
+      if (data.conversationId === currentConvId) {
+        removeTypingIndicator();
+        if (data.message.senderRole === 'admin') {
+          renderMessage(data.message);
+          messages.scrollTop = messages.scrollHeight;
+        }
+      }
+    }
+
+    function onTyping(data) {
+      if (data.conversationId === currentConvId) {
+        renderTypingIndicator();
+      }
+    }
+
+    function onStopTyping(data) {
+      if (data.conversationId === currentConvId) {
+        removeTypingIndicator();
+      }
+    }
+
+    function onClosed(data) {
+      if (data.conversationId === currentConvId) {
+        showStatus('This conversation has been ended by support.');
+        chatInput.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.style.pointerEvents = 'none';
+      }
+    }
+
+    ChatService.on('new_message', onNewMsg);
+    ChatService.on('typing', onTyping);
+    ChatService.on('stop_typing', onStopTyping);
+    ChatService.on('closed', onClosed);
+
+    ChatService.connect();
+
+    Store.chatGetMessages().then(data => {
+      currentConvId = data.conversation ? data.conversation._id : null;
+      if (data.conversation && data.conversation.status === 'closed') {
+        showStatus('This conversation has been ended.');
+        chatInput.disabled = true;
+      }
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(msg => renderMessage(msg));
+        messages.scrollTop = messages.scrollHeight;
+      } else {
+        const welcome = el('div', { style: { display: 'flex', gap: '8px', maxWidth: '80%' } });
+        const avatar = el('div', { className: 'chat-avatar', style: { width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0', fontSize: '12px', fontWeight: '700' } }, 'CX');
+        const bubble = el('div', { style: { background: 'var(--bg)', borderRadius: '12px', padding: '10px 14px', fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.5' } }, 'Hi! How can we help you today? A support agent will be with you shortly.');
+        welcome.appendChild(avatar);
+        welcome.appendChild(bubble);
+        messages.appendChild(welcome);
+      }
+      if (currentConvId) {
+        ChatService.joinConversation(currentConvId);
+      }
+      enableSend();
+    }).catch(() => {
+      showStatus('Failed to load chat. Please try again.');
+    });
 
     const frag = document.createDocumentFragment();
     frag.appendChild(body);

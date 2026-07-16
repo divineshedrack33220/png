@@ -2,8 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import jwt from 'jsonwebtoken';
 import connectDB from './src/config/db.js';
 import { seedIfEmpty } from './src/seed/seed.js';
 import { fetchLiveRates } from './src/controllers/rateController.js';
@@ -18,12 +21,70 @@ import depositRoutes from './src/routes/deposits.js';
 import notificationRoutes from './src/routes/notifications.js';
 import giftCardRoutes from './src/routes/giftcards.js';
 import adminRoutes from './src/routes/admin.js';
+import chatRoutes from './src/routes/chat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+const io = new Server(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST'] }
+});
+
+app.set('io', io);
+
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error('Authentication required'));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { default: User } = await import('./src/models/User.js');
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return next(new Error('User not found'));
+    socket.user = user;
+    next();
+  } catch (err) {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  const user = socket.user;
+  socket.join('user:' + user._id.toString());
+
+  if (user.role === 'admin' || user.role === 'superadmin') {
+    socket.join('admin');
+  }
+
+  socket.on('chat:join', (conversationId) => {
+    socket.join('conv:' + conversationId);
+  });
+
+  socket.on('chat:leave', (conversationId) => {
+    socket.leave('conv:' + conversationId);
+  });
+
+  socket.on('chat:typing', (data) => {
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      io.to('user:' + data.userId).emit('chat:typing', { conversationId: data.conversationId, isTyping: true });
+    } else {
+      io.to('admin').emit('chat:typing', { conversationId: data.conversationId, userId: user._id, isTyping: true });
+    }
+  });
+
+  socket.on('chat:stop_typing', (data) => {
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      io.to('user:' + data.userId).emit('chat:stop_typing', { conversationId: data.conversationId });
+    } else {
+      io.to('admin').emit('chat:stop_typing', { conversationId: data.conversationId, userId: user._id });
+    }
+  });
+
+  socket.on('disconnect', () => {});
+});
 
 app.use(cors({ origin: '*' }));
 app.use(compression());
@@ -56,6 +117,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/giftcards', giftCardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/deposits', depositRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
@@ -64,7 +126,7 @@ app.get('*', (req, res) => {
 async function start() {
   await connectDB();
   await seedIfEmpty();
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Coinexs running on http://localhost:${PORT}`);
   });
   fetchLiveRates();
